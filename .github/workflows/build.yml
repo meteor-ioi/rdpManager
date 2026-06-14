@@ -1,0 +1,57 @@
+name: Build RDP Manager
+
+on:
+  push:
+    branches: [ main, master ]
+  pull_request:
+    branches: [ main, master ]
+  workflow_dispatch: # 支持手动触发
+
+jobs:
+  build:
+    runs-on: windows-latest
+
+    steps:
+    - name: Checkout Repository
+      uses: actions/checkout@v4
+
+    - name: Clone Zydis Submodule
+      run: git clone https://github.com/zyantific/zydis.git TermWrap/zydis
+
+    - name: Setup MSBuild
+      uses: microsoft/setup-msbuild@v2
+
+    - name: Build TermWrap C++ (Release x64)
+      run: msbuild TermWrap/TermWrap.sln /p:Configuration=Release /p:Platform=x64
+
+    - name: Copy Built DLLs to Resources
+      run: |
+        New-Item -ItemType Directory -Force -Path Resources
+        Copy-Item TermWrap\x64\Release\TermWrap.dll Resources\ -Force
+        Copy-Item TermWrap\x64\Release\UmWrap.dll Resources\ -Force
+        Copy-Item TermWrap\x64\Release\Zydis.dll Resources\ -Force
+
+    - name: Setup .NET SDK
+      uses: actions/setup-dotnet@v4
+      with:
+        dotnet-version: '8.0.x'
+
+    - name: Restore Dependencies
+      run: dotnet restore rdpManager.csproj
+
+    - name: Publish Application (win-x64 Single File)
+      run: |
+        dotnet publish rdpManager.csproj `
+          -c Release `
+          -r win-x64 `
+          --self-contained true `
+          -p:PublishSingleFile=true `
+          -p:PublishReadyToRun=true `
+          -p:IncludeNativeLibrariesForSelfContained=true `
+          -o ./publish
+
+    - name: Upload Build Artifact
+      uses: actions/upload-artifact@v4
+      with:
+        name: rdpManager-win-x64
+        path: ./publish/rdpManager.exe
