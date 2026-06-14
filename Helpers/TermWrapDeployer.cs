@@ -106,13 +106,13 @@ namespace rdpManager.Helpers
                     key.SetValue("ServiceDll", PATCHED_SERVICE_DLL, RegistryValueKind.ExpandString);
                 }
 
-                // 6. 将 TermService 服务类型修改为 Own Process (0x10) 强制单独进程承载，规避共享 svchost 缓存问题
+                // 6. 恢复 TermService 服务类型为共享进程 (0x20)。之前尝试使用 0x10 独立进程会破坏 Windows 系统的 RPC/COM 绑定安全上下文，导致 516 连接拒绝。
                 using (RegistryKey? svcKey = Registry.LocalMachine.OpenSubKey(@"SYSTEM\CurrentControlSet\Services\TermService", true))
                 {
                     if (svcKey != null)
                     {
-                        svcKey.SetValue("Type", 0x10, RegistryValueKind.DWord);
-                        Logger.LogInfo("已成功修改 TermService 服务运行类型为独立进程 (0x10)。");
+                        svcKey.SetValue("Type", 0x20, RegistryValueKind.DWord);
+                        Logger.LogInfo("已确保 TermService 服务运行类型为默认共享进程 (0x20)。");
                     }
                 }
 
