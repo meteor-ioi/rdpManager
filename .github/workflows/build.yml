@@ -54,18 +54,19 @@ jobs:
         dotnet-version: '8.0.x'
 
     - name: Restore Dependencies
-      run: dotnet restore rdpManager.csproj
+      run: msbuild rdpManager.csproj /t:Restore /p:Configuration=Release /p:RuntimeIdentifier=win-x64
 
     - name: Publish Application (win-x64 Single File)
       run: |
-        dotnet publish rdpManager.csproj `
-          -c Release `
-          -r win-x64 `
-          --self-contained true `
-          -p:PublishSingleFile=true `
-          -p:PublishReadyToRun=true `
-          -p:IncludeNativeLibrariesForSelfContained=true `
-          -o ./publish
+        msbuild rdpManager.csproj `
+          /t:Publish `
+          /p:Configuration=Release `
+          /p:RuntimeIdentifier=win-x64 `
+          /p:SelfContained=true `
+          /p:PublishSingleFile=true `
+          /p:PublishReadyToRun=true `
+          /p:IncludeNativeLibrariesForSelfContained=true `
+          /p:PublishDir=./publish
 
     - name: Upload Build Artifact
       uses: actions/upload-artifact@v4
