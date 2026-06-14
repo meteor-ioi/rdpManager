@@ -30,20 +30,23 @@ jobs:
 
     - name: Build Zydis Dependency (Release x64)
       run: |
-        cmake -B TermWrap/zydis/build -S TermWrap/zydis -A x64 -DCMAKE_BUILD_TYPE=Release -DZYDIS_BUILD_SHARED_LIBS=OFF
+        cmake -B TermWrap/zydis/build -S TermWrap/zydis -A x64 -DCMAKE_BUILD_TYPE=Release
         cmake --build TermWrap/zydis/build --config Release
         New-Item -ItemType Directory -Force -Path TermWrap\zydis\msvc\bin\ReleaseX64
         Copy-Item TermWrap\zydis\build\Release\Zydis.lib TermWrap\zydis\msvc\bin\ReleaseX64\ -Force
 
-    - name: Build TermWrap C++ (Release x64)
-      run: msbuild TermWrap/TermWrap.sln /p:Configuration=Release /p:Platform=x64
+    - name: Build TermWrap DLL (Release x64)
+      run: msbuild TermWrap/TermWrap/TermWrap.vcxproj /p:Configuration=Release /p:Platform=x64
+
+    - name: Build UmWrap DLL (Release x64)
+      run: msbuild TermWrap/UmWrap/UmWrap.vcxproj /p:Configuration=Release /p:Platform=x64
 
     - name: Copy Built DLLs to Resources
       run: |
         New-Item -ItemType Directory -Force -Path Resources
         Copy-Item TermWrap\x64\Release\TermWrap.dll Resources\ -Force
         Copy-Item TermWrap\x64\Release\UmWrap.dll Resources\ -Force
-        Copy-Item TermWrap\x64\Release\Zydis.dll Resources\ -Force
+        Copy-Item TermWrap\zydis\build\Release\Zydis.dll Resources\ -Force
 
     - name: Setup .NET SDK
       uses: actions/setup-dotnet@v4
