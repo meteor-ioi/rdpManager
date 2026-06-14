@@ -1,7 +1,9 @@
 using System;
+using System.Diagnostics;
 using System.IO;
 using System.Reflection;
 using System.ServiceProcess;
+using System.Threading;
 using Microsoft.Win32;
 
 namespace rdpManager.Helpers
@@ -56,7 +58,8 @@ namespace rdpManager.Helpers
                 ExtractResource("UmWrap.dll", Path.Combine(RDP_WRAPPER_DIR, "UmWrap.dll"));
                 ExtractResource("Zydis.dll", Path.Combine(RDP_WRAPPER_DIR, "Zydis.dll"));
 
-                // 3. 停止远程桌面服务
+                // 3. 强制注销所有活跃 RDP 会话，再停止服务（有活跃会话时服务无法停止）
+                KillAllRdpSessions();
                 ControlService("TermService", stop: true);
 
                 // 4. 修改注册表劫持 ServiceDll
@@ -109,7 +112,8 @@ namespace rdpManager.Helpers
             Logger.LogInfo("开始卸载 TermWrap 补丁...");
             try
             {
-                // 1. 停止远程桌面服务
+                // 1. 强制注销所有活跃 RDP 会话，再停止服务
+                KillAllRdpSessions();
                 ControlService("TermService", stop: true);
 
                 // 2. 恢复注册表 ServiceDll 为系统默认的 termsrv.dll
@@ -143,6 +147,83 @@ namespace rdpManager.Helpers
                 errorMessage = ex.Message;
                 Logger.LogError("卸载 TermWrap 补丁发生致命异常", ex);
                 return false;
+            }
+        }
+
+        /// <summary>
+        /// 强制注销当前系统中所有活跃的 RDP 远程会话（非 console/services），
+        /// 确保 TermService 服务可以被正常停止。
+        /// </summary>
+        private static void KillAllRdpSessions()
+        {
+            try
+            {
+                Logger.LogInfo("正在枚举并强制注销所有活跃 RDP 会话...");
+
+                // 执行 qwinsta 获取所有会话列表
+                var psi = new ProcessStartInfo("qwinsta")
+                {
+                    RedirectStandardOutput = true,
+                    UseShellExecute = false,
+                    CreateNoWindow = true
+                };
+
+                using (var proc = Process.Start(psi))
+                {
+                    if (proc == null) return;
+                    string output = proc.StandardOutput.ReadToEnd();
+                    proc.WaitForExit(5000);
+
+                    // 逐行解析 qwinsta 的输出，格式：SESSIONNAME  USERNAME  ID  STATE  TYPE  DEVICE
+                    foreach (string line in output.Split('\n'))
+                    {
+                        // 跳过标题行和空行
+                        if (string.IsNullOrWhiteSpace(line) || line.TrimStart().StartsWith("SESSIONNAME", StringComparison.OrdinalIgnoreCase))
+                            continue;
+
+                        // 跳过 console 和 services 会话（这两个是系统核心会话，不应注销）
+                        if (line.Contains("console", StringComparison.OrdinalIgnoreCase) ||
+                            line.Contains("services", StringComparison.OrdinalIgnoreCase))
+                            continue;
+
+                        // 只处理 Active 或 Disc 状态的会话
+                        if (!line.Contains("Active", StringComparison.OrdinalIgnoreCase) &&
+                            !line.Contains("Disc", StringComparison.OrdinalIgnoreCase))
+                            continue;
+
+                        // 提取会话 ID（第3列，固定宽度格式）
+                        string[] parts = line.Split(new char[] { ' ' }, StringSplitOptions.RemoveEmptyEntries);
+                        // qwinsta 输出列顺序：NAME, USERNAME, ID, STATE, ...
+                        // 当前行有 > 符号标记活跃会话（本机登录），部分行 NAME 列为空，ID 在不同位置
+                        // 使用按固定宽度解析：ID 在 offset 19-22 区间
+                        if (line.Length >= 23)
+                        {
+                            string idStr = line.Substring(19, Math.Min(5, line.Length - 19)).Trim();
+                            if (int.TryParse(idStr, out int sessionId) && sessionId > 0)
+                            {
+                                Logger.LogInfo($"正在注销会话 ID={sessionId}...");
+                                var logoffPsi = new ProcessStartInfo("logoff", sessionId.ToString())
+                                {
+                                    UseShellExecute = false,
+                                    CreateNoWindow = true
+                                };
+                                using (var logoffProc = Process.Start(logoffPsi))
+                                {
+                                    logoffProc?.WaitForExit(5000);
+                                }
+                            }
+                        }
+                    }
+                }
+
+                // 等待 2 秒，让系统完成会话清理后再停止服务
+                Thread.Sleep(2000);
+                Logger.LogInfo("活跃 RDP 会话已清理完毕。");
+            }
+            catch (Exception ex)
+            {
+                // 会话注销失败不应阻止后续部署，记录警告并继续
+                Logger.LogWarning($"清理活跃 RDP 会话时出错（将继续尝试停止服务）: {ex.Message}");
             }
         }
 
