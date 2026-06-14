@@ -83,7 +83,19 @@ namespace rdpManager.Helpers
             catch (Exception ex)
             {
                 errorMessage = ex.Message;
-                Logger.LogError("部署 TermWrap 补丁发生致命异常", ex);
+                Logger.LogError("部署 TermWrap 补丁发生致命异常，正在自动回滚注册表...", ex);
+                try
+                {
+                    using (RegistryKey? rollbackKey = Registry.LocalMachine.OpenSubKey(TERM_SERVICE_REG_PATH, true))
+                    {
+                        rollbackKey?.SetValue("ServiceDll", DEFAULT_SERVICE_DLL, RegistryValueKind.ExpandString);
+                    }
+                    Logger.LogInfo("注册表已成功回滚至原厂 termsrv.dll。");
+                }
+                catch (Exception rollbackEx)
+                {
+                    Logger.LogError("回滚注册表失败！系统重启后可能无法正常进入桌面。", rollbackEx);
+                }
                 return false;
             }
         }
