@@ -69,11 +69,7 @@ namespace rdpManager.Views
                 _rdpControl.OnDisconnected += (s, ev) =>
                 {
                     IsConnected = false;
-                    string reason = "未知原因";
-                    if (_rdpControl != null)
-                    {
-                        reason = _rdpControl.GetErrorDescription((uint)ev.discReason, (uint)_rdpControl.ExtendedDisconnectReason);
-                    }
+                    string reason = $"连接已断开 (代码: {ev.discReason})";
                     OnRdpDisconnected?.Invoke(this, reason);
                 };
             }
@@ -109,7 +105,7 @@ namespace rdpManager.Views
             advancedSettings5.RedirectSmartCards = false;
 
             // 音频优化：1 = 不在本地播放音频（完全静音运行，节省 CPU 开销）
-            _rdpControl.SecuredSettings3.AudioRedirectionMode = 1;
+            advancedSettings.AudioRedirectionMode = 1;
 
             // 如果开启了外设重定向 (UmWrap 功能)
             if (enableUsb)
