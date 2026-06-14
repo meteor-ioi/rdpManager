@@ -315,7 +315,7 @@ namespace rdpManager.Helpers
                         {
                             sc.WaitForStatus(ServiceControllerStatus.Stopped, TimeSpan.FromSeconds(30));
                         }
-                        catch (TimeoutException)
+                        catch (System.ServiceProcess.TimeoutException)
                         {
                             Logger.LogWarning($"服务 {serviceName} 在 30 秒内未能正常停止，正在强制终止承载进程...");
                             ForceKillService(serviceName);
