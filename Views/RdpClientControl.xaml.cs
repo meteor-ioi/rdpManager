@@ -40,6 +40,9 @@ namespace rdpManager.Views
                     this.Opacity = 1;
                     this.IsHitTestVisible = true;
                     this.Margin = new System.Windows.Thickness(0);
+
+                    // 强制刷新控件，重新激发底层 HWND 的 WM_PAINT 绘制，解决前后台切换导致的画面冻结/空白
+                    RdpHost?.InvalidateVisual();
                 }
             }
         }
@@ -189,6 +192,7 @@ namespace rdpManager.Views
             advancedSettings5.RedirectClipboard = enableClipboard; // 启用双向剪贴板
             advancedSettings5.RedirectPrinters = false; // 禁用打印机重定向以优化速度
             advancedSettings5.RedirectSmartCards = false;
+            advancedSettings5.BitmapPeristenceActive = 0; // 禁用位图缓存，防止本地回环连接时缓存损坏导致黑屏
 
             // 应用 DPI 缩放配置 (需要高级接口或动态绑定以兼容旧系统)
             if (desktopScaleFactor > 100)

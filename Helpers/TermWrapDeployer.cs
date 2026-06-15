@@ -400,6 +400,13 @@ namespace rdpManager.Helpers
                     key.SetValue("fDisableClipRedir", 0, RegistryValueKind.DWord);
                     key.SetValue("fDisableCdmAllowed", 0, RegistryValueKind.DWord); // 驱动器重定向
                 }
+
+                // 禁用 URCP 协议以解决本地回环 RDP 连接黑屏/空白画面问题
+                using (RegistryKey key = Registry.LocalMachine.CreateSubKey(@"SOFTWARE\Microsoft\Terminal Server Client", true))
+                {
+                    key.SetValue("UseURCP", 0, RegistryValueKind.DWord);
+                    Logger.LogInfo("已在注册表中禁用 RDP 客户端 URCP 协议以防止黑屏。");
+                }
             }
             catch
             {
