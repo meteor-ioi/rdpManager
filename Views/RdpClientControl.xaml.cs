@@ -41,8 +41,11 @@ namespace rdpManager.Views
                     this.IsHitTestVisible = true;
                     this.Margin = new System.Windows.Thickness(0);
 
-                    // 强制刷新控件，重新激发底层 HWND 的 WM_PAINT 绘制，解决前后台切换导致的画面冻结/空白
+                    // 强制 WPF 布局更新
                     RdpHost?.InvalidateVisual();
+                    RdpHost?.UpdateLayout();
+                    // 延迟到渲染完成后，强制刷新底层 Win32 HWND（InvalidateVisual 仅影响 WPF 层，不触发 HWND 的 WM_PAINT）
+                    Dispatcher.InvokeAsync(ForceHwndRepaint, System.Windows.Threading.DispatcherPriority.Render);
                 }
             }
         }
@@ -86,9 +89,11 @@ namespace rdpManager.Views
                     // 绑定事件
                     _rdpControl.OnConnected += (s, ev) =>
                     {
-                        Logger.LogInfo($"AxMsTscAx 触发 OnConnected 回调: Server={ServerName}");
+                        Logger.LogInfo($"AxMsTscAx 触发 OnConnected 回调: Server={ServerName}, ControlSize={_rdpControl?.Width}x{_rdpControl?.Height}");
                         IsConnected = true;
                         OnRdpConnected?.Invoke(this, EventArgs.Empty);
+                        // 连接建立后强制刷新 HWND 画面（ActiveX 控件首帧可能不自动渲染）
+                        Dispatcher.InvokeAsync(ForceHwndRepaint, System.Windows.Threading.DispatcherPriority.Render);
                     };
 
                     _rdpControl.OnDisconnected += (s, ev) =>
@@ -105,13 +110,14 @@ namespace rdpManager.Views
                     Logger.LogInfo("检测到有缓存的连接请求，立即执行连接。");
                     _connectPending = false;
                     
-                    // 延迟到布局完成后执行连接，确保 WinFormsHost 有实际宽高
+                    // 延迟到用户输入优先级执行连接——比 Loaded/Render 更低，确保 WPF 布局和渲染管道已完整结算 HWND 尺寸
                     Dispatcher.InvokeAsync(() =>
                     {
+                        Logger.LogInfo($"执行缓存的 RDP 连接请求: Host大小={RdpHost?.ActualWidth}x{RdpHost?.ActualHeight}");
                         Connect(_pendingServer!, _pendingUsername!, _pendingPassword!, 
                             _pendingEnableUsb, _pendingEnableSmartSizing, _pendingEnableClipboard, _pendingMuteAudio,
                             _pendingDesktopWidth, _pendingDesktopHeight, _pendingDesktopScaleFactor);
-                    }, System.Windows.Threading.DispatcherPriority.Loaded);
+                    }, System.Windows.Threading.DispatcherPriority.Input);
                 }
             }
             catch (Exception ex)
@@ -193,6 +199,7 @@ namespace rdpManager.Views
             advancedSettings5.RedirectPrinters = false; // 禁用打印机重定向以优化速度
             advancedSettings5.RedirectSmartCards = false;
             advancedSettings5.BitmapPeristence = 0; // 禁用位图缓存，防止本地回环连接时缓存损坏导致黑屏
+            advancedSettings5.AuthenticationLevel = 0; // 跳过服务器证书验证（本地回环使用自签名证书，标准验证会导致连接静默挂起）
 
             // 应用 DPI 缩放配置 (需要高级接口或动态绑定以兼容旧系统)
             if (desktopScaleFactor > 100)
@@ -225,8 +232,10 @@ namespace rdpManager.Views
 
             try
             {
-                Logger.LogInfo($"调用 ActiveX 控件 Connect(): Server={server}");
+                Logger.LogInfo($"调用 ActiveX 控件 Connect(): Server={server}, ControlSize={_rdpControl.Width}x{_rdpControl.Height}, HandleCreated={_rdpControl.IsHandleCreated}");
                 _rdpControl.Connect();
+                // 连接发起后延迟强制刷新 HWND 确保初始帧渲染
+                Dispatcher.InvokeAsync(ForceHwndRepaint, System.Windows.Threading.DispatcherPriority.Render);
             }
             catch (Exception ex)
             {
@@ -303,6 +312,37 @@ namespace rdpManager.Views
             finally
             {
                 DeleteObject(hBitmap);
+            }
+        }
+
+        [DllImport("user32.dll")]
+        [return: MarshalAs(UnmanagedType.Bool)]
+        private static extern bool RedrawWindow(IntPtr hWnd, IntPtr lprcUpdate, IntPtr hrgnUpdate, uint flags);
+
+        private const uint RDW_INVALIDATE = 0x0001;
+        private const uint RDW_ERASE = 0x0004;
+        private const uint RDW_ALLCHILDREN = 0x0080;
+        private const uint RDW_UPDATENOW = 0x0100;
+        private const uint RDW_FRAME = 0x0400;
+
+        /// <summary>
+        /// 强制刷新底层 Win32 HWND（绕过 WPF 渲染管道，直接触发 WM_PAINT）
+        /// </summary>
+        private void ForceHwndRepaint()
+        {
+            try
+            {
+                if (_rdpControl != null && _rdpControl.IsHandleCreated)
+                {
+                    IntPtr hwnd = _rdpControl.Handle;
+                    RedrawWindow(hwnd, IntPtr.Zero, IntPtr.Zero,
+                        RDW_INVALIDATE | RDW_UPDATENOW | RDW_ALLCHILDREN | RDW_ERASE | RDW_FRAME);
+                    Logger.LogInfo($"已强制刷新 RDP HWND=0x{hwnd:X}, Size={_rdpControl.Width}x{_rdpControl.Height}");
+                }
+            }
+            catch (Exception ex)
+            {
+                Logger.LogWarning($"ForceHwndRepaint 失败: {ex.Message}");
             }
         }
 
