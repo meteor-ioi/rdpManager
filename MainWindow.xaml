@@ -404,6 +404,24 @@
                         <!-- Content -->
                         <Border x:Name="Module4Content" Visibility="Visible" Margin="0,12,0,0" BorderBrush="#2E3047" BorderThickness="0,1,0,0" Padding="0,12,0,0">
                             <StackPanel>
+                                <!-- 表头列标题 -->
+                                <Border Background="#1D1D2C" Padding="8,6,8,6" CornerRadius="4,4,0,0" Margin="0,0,0,4">
+                                    <Grid>
+                                        <Grid.ColumnDefinitions>
+                                            <ColumnDefinition Width="2*"/>
+                                            <ColumnDefinition Width="1.5*"/>
+                                            <ColumnDefinition Width="1.5*"/>
+                                            <ColumnDefinition Width="2*"/>
+                                            <ColumnDefinition Width="3*"/>
+                                        </Grid.ColumnDefinitions>
+                                        <TextBlock Grid.Column="0" Text="用户名" Foreground="#888CAA" FontWeight="Bold" FontSize="12"/>
+                                        <TextBlock Grid.Column="1" Text="会话 ID" Foreground="#888CAA" FontWeight="Bold" FontSize="12"/>
+                                        <TextBlock Grid.Column="2" Text="会话状态" Foreground="#888CAA" FontWeight="Bold" FontSize="12"/>
+                                        <TextBlock Grid.Column="3" Text="分辨率" Foreground="#888CAA" FontWeight="Bold" FontSize="12"/>
+                                        <TextBlock Grid.Column="4" Text="运行时长 / 操作" Foreground="#888CAA" FontWeight="Bold" FontSize="12" HorizontalAlignment="Right"/>
+                                    </Grid>
+                                </Border>
+
                                 <ListView x:Name="SessionsListView" Background="Transparent" BorderThickness="0" ScrollViewer.HorizontalScrollBarVisibility="Disabled" Foreground="#EAEAEA">
                                     <ListView.ItemContainerStyle>
                                         <Style TargetType="ListViewItem">
@@ -435,25 +453,6 @@
                                             <MenuItem Header="强制注销 (Logoff)" Click="LogoffSessionContext_Click"/>
                                         </ContextMenu>
                                     </ListView.ContextMenu>
-
-                                    <ListView.HeaderTemplate>
-                                        <DataTemplate>
-                                            <Grid Padding="8,4,8,4" Background="#1D1D2C">
-                                                <Grid.ColumnDefinitions>
-                                                    <ColumnDefinition Width="2*"/>
-                                                    <ColumnDefinition Width="1.5*"/>
-                                                    <ColumnDefinition Width="1.5*"/>
-                                                    <ColumnDefinition Width="2*"/>
-                                                    <ColumnDefinition Width="3*"/>
-                                                </Grid.ColumnDefinitions>
-                                                <TextBlock Grid.Column="0" Text="用户名" Foreground="#888CAA" FontWeight="Bold"/>
-                                                <TextBlock Grid.Column="1" Text="会话 ID" Foreground="#888CAA" FontWeight="Bold"/>
-                                                <TextBlock Grid.Column="2" Text="会话状态" Foreground="#888CAA" FontWeight="Bold"/>
-                                                <TextBlock Grid.Column="3" Text="分辨率" Foreground="#888CAA" FontWeight="Bold"/>
-                                                <TextBlock Grid.Column="4" Text="运行时长 / 操作" Foreground="#888CAA" FontWeight="Bold" HorizontalAlignment="Right"/>
-                                            </Grid>
-                                        </DataTemplate>
-                                    </ListView.HeaderTemplate>
 
                                     <ListView.ItemTemplate>
                                         <DataTemplate>

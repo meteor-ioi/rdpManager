@@ -1,5 +1,5 @@
 <Window x:Class="rdpManager.Views.RdpWindow"
-        xmlns="http://schemas.microsoft.com/winfx/2000/xaml/presentation"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
         xmlns:x="http://schemas.microsoft.com/winfx/2000/xaml"
         xmlns:local="clr-namespace:rdpManager.Views"
         Title="LocalRDP — 隔离会话" Height="768" Width="1024"
