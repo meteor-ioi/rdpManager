@@ -1,0 +1,11 @@
+<Window x:Class="rdpManager.Views.RdpWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2000/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2000/xaml"
+        xmlns:local="clr-namespace:rdpManager.Views"
+        Title="LocalRDP — 隔离会话" Height="768" Width="1024"
+        WindowStartupLocation="CenterScreen"
+        Background="#1A1A2E">
+    <Grid>
+        <local:RdpClientControl x:Name="RdpCtrl" HorizontalAlignment="Stretch" VerticalAlignment="Stretch"/>
+    </Grid>
+</Window>

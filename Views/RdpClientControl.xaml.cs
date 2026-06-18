@@ -57,6 +57,9 @@ namespace rdpManager.Views
         private int _pendingDesktopWidth;
         private int _pendingDesktopHeight;
         private int _pendingDesktopScaleFactor;
+        private bool _pendingRedirectMic;
+        private bool _pendingRedirectDrives;
+        private bool _pendingRedirectPrinters;
         private bool _connectPending = false;
 
         public RdpClientControl()
@@ -104,7 +107,8 @@ namespace rdpManager.Views
                     
                     Connect(_pendingServer!, _pendingUsername!, _pendingPassword!, 
                         _pendingEnableUsb, _pendingEnableSmartSizing, _pendingEnableClipboard, _pendingMuteAudio,
-                        _pendingDesktopWidth, _pendingDesktopHeight, _pendingDesktopScaleFactor);
+                        _pendingDesktopWidth, _pendingDesktopHeight, _pendingDesktopScaleFactor,
+                        _pendingRedirectMic, _pendingRedirectDrives, _pendingRedirectPrinters);
                 }
             }
             catch (Exception ex)
@@ -120,9 +124,10 @@ namespace rdpManager.Views
         public void Connect(string server, string username, string password, 
             bool enableUsb = false, bool enableSmartSizing = true, 
             bool enableClipboard = true, bool muteAudio = true,
-            int desktopWidth = 0, int desktopHeight = 0, int desktopScaleFactor = 100)
+            int desktopWidth = 0, int desktopHeight = 0, int desktopScaleFactor = 100,
+            bool redirectMic = false, bool redirectDrives = false, bool redirectPrinters = false)
         {
-            Logger.LogInfo($"RdpClientControl.Connect() 被调用: Server={server}, Username={username}, EnableUsb={enableUsb}, EnableSmartSizing={enableSmartSizing}, EnableClipboard={enableClipboard}, MuteAudio={muteAudio}");
+            Logger.LogInfo($"RdpClientControl.Connect() 被调用: Server={server}, Username={username}, EnableUsb={enableUsb}, EnableSmartSizing={enableSmartSizing}, EnableClipboard={enableClipboard}, MuteAudio={muteAudio}, RedirectMic={redirectMic}, RedirectDrives={redirectDrives}, RedirectPrinters={redirectPrinters}");
             
             _pendingServer = server;
             _pendingUsername = username;
@@ -134,6 +139,9 @@ namespace rdpManager.Views
             _pendingDesktopWidth = desktopWidth;
             _pendingDesktopHeight = desktopHeight;
             _pendingDesktopScaleFactor = desktopScaleFactor;
+            _pendingRedirectMic = redirectMic;
+            _pendingRedirectDrives = redirectDrives;
+            _pendingRedirectPrinters = redirectPrinters;
 
             if (_rdpControl == null)
             {
@@ -170,7 +178,8 @@ namespace rdpManager.Views
             var advancedSettings5 = (IMsRdpClientAdvancedSettings5)_rdpControl.AdvancedSettings;
             advancedSettings5.SmartSizing = enableSmartSizing;       // 分辨率自适应缩放
             advancedSettings5.RedirectClipboard = enableClipboard; // 启用双向剪贴板
-            advancedSettings5.RedirectPrinters = false; // 禁用打印机重定向以优化速度
+            advancedSettings5.RedirectPrinters = redirectPrinters;
+            advancedSettings5.RedirectDrives = redirectDrives;
             advancedSettings5.RedirectSmartCards = false;
 
             // 音频优化：1 = 不在本地播放音频（完全静音运行，节省 CPU 开销）
@@ -178,6 +187,16 @@ namespace rdpManager.Views
             {
                 var securedSettings = (IMsRdpClientSecuredSettings)_rdpControl.SecuredSettings;
                 securedSettings.AudioRedirectionMode = muteAudio ? 1 : 0;
+            }
+
+            try
+            {
+                dynamic adv = _rdpControl.AdvancedSettings;
+                adv.AudioCaptureRedirectionMode = redirectMic;
+            }
+            catch (Exception ex)
+            {
+                Logger.LogWarning($"设置音频捕获 (麦克风) 重定向失败: {ex.Message}");
             }
 
             // 如果开启了外设重定向 (UmWrap 功能)

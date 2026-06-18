@@ -3,12 +3,13 @@ using System.Collections.Generic;
 using System.Collections.ObjectModel;
 using System.ComponentModel;
 using System.Linq;
-using System.Runtime.CompilerServices;
+using System.Security.Principal;
+using System.Threading;
+using System.Threading.Tasks;
 using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Input;
 using System.Windows.Media;
-using System.Windows.Media.Imaging;
 using System.Windows.Threading;
 using rdpManager.Helpers;
 using rdpManager.Views;
@@ -17,660 +18,270 @@ namespace rdpManager
 {
     public partial class MainWindow : Window
     {
-        private ObservableCollection<ConnectionItem> _connections = new ObservableCollection<ConnectionItem>();
-        private DispatcherTimer _thumbnailTimer;
+        private readonly ObservableCollection<WtsSessionInfo> _sessions = new ObservableCollection<WtsSessionInfo>();
+        private readonly HashSet<string> _keepAliveUsers = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+        private readonly Dictionary<string, RdpWindow> _activeWindows = new Dictionary<string, RdpWindow>(StringComparer.OrdinalIgnoreCase);
+        
+        private DispatcherTimer? _pollTimer;
+        private CancellationTokenSource? _guardCts;
+        private Task? _guardTask;
+        
         private System.Windows.Forms.NotifyIcon? _notifyIcon;
         private bool _isExplicitExit = false;
 
         public MainWindow()
         {
             InitializeComponent();
+            
+            // 数据源绑定
+            SessionsListView.ItemsSource = _sessions;
 
-            // 绑定连接列表数据源
-            ConnectionCardsControl.ItemsSource = _connections;
+            // 检查管理员身份
+            CheckAdminPrivileges();
 
-            // 加载持久化的连接配置
-            LoadConnections();
-
-            // 初始时不选定任何 Tab，默认显示仪表盘
-            WorkspaceTabs.SelectedIndex = -1;
-
-            // 启动定时器，每 3 秒刷新一次连接网格的屏幕截图
-            _thumbnailTimer = new DispatcherTimer();
-            _thumbnailTimer.Interval = TimeSpan.FromSeconds(3);
-            _thumbnailTimer.Tick += ThumbnailTimer_Tick;
-            _thumbnailTimer.Start();
-
-            // 检测 TermWrap 补丁状态
-            RefreshTermWrapStatus();
-
-            // 初始化系统托盘图标
+            // 初始化系统托盘
             InitializeNotifyIcon();
 
             this.Loaded += MainWindow_Loaded;
+            this.Closed += MainWindow_Closed;
+        }
+
+        private void CheckAdminPrivileges()
+        {
+            try
+            {
+                bool isAdmin = new WindowsPrincipal(WindowsIdentity.GetCurrent()).IsInRole(WindowsBuiltInRole.Administrator);
+                AdminWarningBanner.Visibility = isAdmin ? Visibility.Collapsed : Visibility.Visible;
+            }
+            catch (Exception ex)
+            {
+                Logger.LogError("检查管理员权限失败", ex);
+            }
         }
 
         private void MainWindow_Loaded(object sender, RoutedEventArgs e)
         {
-            // 默认展示仪表盘
-            SwitchToView(ViewWorkspaces);
-            UpdateNavButtons(NavDashboardBtn);
+            // 刷新补丁状态
+            RefreshTermWrapStatus();
 
-            // 后台异步预热本地账户列表缓存
-            _ = System.Threading.Tasks.Task.Run(() => AccountHelper.GetLocalAccounts(true));
+            // 加载本地账号
+            LoadAccountsAsync();
+
+            // 启动 WTS 会话轮询定时器 (4 秒一次)
+            _pollTimer = new DispatcherTimer { Interval = TimeSpan.FromSeconds(4) };
+            _pollTimer.Tick += PollTimer_Tick;
+            _pollTimer.Start();
+
+            // 立即进行一次会话拉取
+            PollTimer_Tick(null, EventArgs.Empty);
+
+            // 启动保活守护线程
+            _guardCts = new CancellationTokenSource();
+            _guardTask = Task.Run(() => GuardLoop(_guardCts.Token));
+
+            Logger.LogInfo("主窗口加载完成，会话轮询与保活守护 Task 已启动。");
         }
 
-        // ======================= 状态与数据加载 =======================
-
-        private void RefreshTermWrapStatus()
+        private void MainWindow_Closed(object? sender, EventArgs e)
         {
-            bool isActive = TermWrapDeployer.IsMultiSessionActive();
-            bool isRunning = TermWrapDeployer.IsTermServiceRunning();
-            Logger.LogInfo($"检测 TermWrap 补丁状态: {(isActive ? "已激活" : "未激活")}, 远程服务运行状态: {(isRunning ? "正在运行" : "已停止")}");
-            if (isActive)
+            _pollTimer?.Stop();
+            
+            if (_guardCts != null)
             {
-                if (isRunning)
-                {
-                    StatusDot.Fill = (Brush?)new BrushConverter().ConvertFromString("#0070F3") ?? Brushes.Blue; // Vercel 经典蓝色
-                    StatusTxt.Text = "并发会话已激活 (TermWrap)";
-                    TermWrapStatusTxt.Text = "已激活 (服务已劫持并运行中)";
-                    TermWrapStatusTxt.Foreground = (Brush?)new BrushConverter().ConvertFromString("#0070F3") ?? Brushes.Blue;
-                }
-                else
-                {
-                    StatusDot.Fill = (Brush?)new BrushConverter().ConvertFromString("#F5A623") ?? Brushes.Orange; // 警告橙色
-                    StatusTxt.Text = "并发会话已激活，但远程服务已停止";
-                    TermWrapStatusTxt.Text = "已激活 (但服务当前已停止)";
-                    TermWrapStatusTxt.Foreground = (Brush?)new BrushConverter().ConvertFromString("#F5A623") ?? Brushes.Orange;
-                }
+                _guardCts.Cancel();
+                _guardCts.Dispose();
             }
-            else
+
+            _notifyIcon?.Dispose();
+        }
+
+        // ======================= WTS 会话轮询与更新 =======================
+
+        private void PollTimer_Tick(object? sender, EventArgs e)
+        {
+            try
             {
-                if (isRunning)
+                // 拉取最新 WTS 会话列表
+                var currentSessions = WtsHelper.GetWtsSessions();
+
+                // 1. 删除在新列表中不存在的旧会话
+                for (int i = _sessions.Count - 1; i >= 0; i--)
                 {
-                    StatusDot.Fill = Brushes.Red;
-                    StatusTxt.Text = "并发会话未激活 / 补丁未应用";
-                    TermWrapStatusTxt.Text = "未激活 / 默认单会话模式";
-                    TermWrapStatusTxt.Foreground = Brushes.Red;
+                    var oldSession = _sessions[i];
+                    if (!currentSessions.Any(s => s.SessionId == oldSession.SessionId))
+                    {
+                        _sessions.RemoveAt(i);
+                    }
                 }
-                else
+
+                // 2. 添加或差分更新会话
+                foreach (var newSession in currentSessions)
                 {
-                    StatusDot.Fill = Brushes.Red;
-                    StatusTxt.Text = "并发会话未激活，且远程服务已停止";
-                    TermWrapStatusTxt.Text = "未激活 (远程服务已停止)";
-                    TermWrapStatusTxt.Foreground = Brushes.Red;
+                    var existing = _sessions.FirstOrDefault(s => s.SessionId == newSession.SessionId);
+                    if (existing == null)
+                    {
+                        _sessions.Add(newSession);
+                    }
+                    else
+                    {
+                        existing.UserName = newSession.UserName;
+                        existing.State = newSession.State;
+                        existing.ClientWidth = newSession.ClientWidth;
+                        existing.ClientHeight = newSession.ClientHeight;
+                        existing.RunningTime = newSession.RunningTime;
+                    }
                 }
+
+                // 3. 更新 UI 指示器
+                SessionCountBadge.Text = _sessions.Count.ToString();
+                NoSessionsTip.Visibility = _sessions.Count == 0 ? Visibility.Visible : Visibility.Collapsed;
+            }
+            catch (Exception ex)
+            {
+                Logger.LogError("轮询 WTS 会话异常", ex);
             }
         }
+
+        // ======================= 核心保活与阻止睡眠守护 =======================
+
+        private async Task GuardLoop(CancellationToken token)
+        {
+            while (!token.IsCancellationRequested)
+            {
+                try
+                {
+                    // 阻止系统锁屏/休眠
+                    bool preventSleep = false;
+                    Dispatcher.Invoke(() => preventSleep = PreventSleepChk.IsChecked == true);
+
+                    if (preventSleep)
+                    {
+                        WtsHelper.PreventSleep();
+                    }
+                    else
+                    {
+                        WtsHelper.AllowSleep();
+                    }
+
+                    // 检查保活分辨率锁定开关
+                    bool lockRes = false;
+                    Dispatcher.Invoke(() => lockRes = LockResolutionChk.IsChecked == true);
+
+                    // 查询所有当前会话
+                    var currentSessions = WtsHelper.GetWtsSessions();
+
+                    // 对已保活列表中的用户进行扫描
+                    string[] targetUsers;
+                    lock (_keepAliveUsers)
+                    {
+                        targetUsers = _keepAliveUsers.ToArray();
+                    }
+
+                    foreach (var username in targetUsers)
+                    {
+                        var session = currentSessions.FirstOrDefault(s => s.UserName.Equals(username, StringComparison.OrdinalIgnoreCase));
+                        if (session != null)
+                        {
+                            // 如果会话在系统中且状态为断开 (Disconnected)
+                            if (session.State == WtsConnectState.Disconnected)
+                            {
+                                Logger.LogInfo($"[Guard] 检测到保活用户 '{session.UserName}' 的会话处于 Disconnected 状态 (SessionId={session.SessionId})，发起控制台劫持...");
+                                
+                                // 执行 tscon 回物理控制台
+                                bool success = WtsHelper.TsconToConsole(session.SessionId);
+                                if (success)
+                                {
+                                    Logger.LogInfo($"[Guard] 会话 '{session.UserName}' tscon 劫持成功！");
+
+                                    // 如果勾选锁定分辨率，强行同步分辨率
+                                    if (lockRes && session.ClientWidth > 0 && session.ClientHeight > 0)
+                                    {
+                                        bool resOk = WtsHelper.LockResolution(session.ClientWidth, session.ClientHeight);
+                                        Logger.LogInfo($"[Guard] 强制物理显示分辨率同步为 {session.ClientWidth}x{session.ClientHeight}: {(resOk ? "成功" : "失败")}");
+                                    }
+                                }
+                                else
+                                {
+                                    Logger.LogWarning($"[Guard] 会话 '{session.UserName}' tscon 劫持失败。");
+                                }
+                            }
+                        }
+                    }
+                }
+                catch (Exception ex)
+                {
+                    Logger.LogError("GuardLoop 循环迭代出现异常", ex);
+                }
+
+                await Task.Delay(2000, token);
+            }
+        }
+
+        // ======================= 隔离账号管理 =======================
 
         private async void LoadAccountsAsync(bool forceRefresh = false)
         {
-            bool showLoading = forceRefresh || !AccountHelper.HasCache();
-            if (showLoading) ShowLoading("正在读取账户列表...");
+            ShowLoading("正在拉取本地隔离账户列表...");
             try
             {
-                var accounts = await System.Threading.Tasks.Task.Run(() => AccountHelper.GetLocalAccounts(forceRefresh));
-                AccountsDataGrid.ItemsSource = accounts;
+                var accounts = await Task.Run(() => AccountHelper.GetLocalAccounts(forceRefresh));
+                AccountCombo.ItemsSource = accounts;
+                if (accounts != null && accounts.Count > 0)
+                {
+                    AccountCombo.SelectedIndex = 0;
+                }
             }
             catch (Exception ex)
             {
-                Logger.LogError("加载本地账户列表失败", ex);
-                MessageBox.Show($"加载账户列表失败: {ex.Message}", "错误", MessageBoxButton.OK, MessageBoxImage.Error);
+                Logger.LogError("加载本地账户失败", ex);
+                MessageBox.Show($"加载账户失败: {ex.Message}", "错误", MessageBoxButton.OK, MessageBoxImage.Error);
             }
             finally
             {
-                if (showLoading) HideLoading();
+                HideLoading();
             }
         }
 
-        private void ShowLoading(string message)
+        private void AccountCombo_SelectionChanged(object sender, SelectionChangedEventArgs e)
         {
-            Dispatcher.Invoke(() =>
+            if (AccountCombo.SelectedItem is string username)
             {
-                LoadingText.Text = message;
-                GlobalLoadingOverlay.Visibility = Visibility.Visible;
-            });
-        }
-
-        private void HideLoading()
-        {
-            Dispatcher.Invoke(() =>
-            {
-                GlobalLoadingOverlay.Visibility = Visibility.Collapsed;
-            });
-        }
-
-        // ======================= 侧边栏导航切换 =======================
-
-        private void Nav_Click(object sender, RoutedEventArgs e)
-        {
-            if (sender is Button clickedBtn)
-            {
-                UpdateNavButtons(clickedBtn);
-
-                if (clickedBtn == NavDashboardBtn)
+                // 自动载入已保存凭证
+                if (CredentialHelper.GetCredential($"RDPManager:{username}", out _, out string pwd))
                 {
-                    SwitchToView(ViewWorkspaces);
-                    WorkspaceTabs.SelectedIndex = -1; // 取消选择所有会话标签以显示仪表盘
-                }
-                else if (clickedBtn == NavAccountsBtn)
-                {
-                    SwitchToView(ViewAccounts);
-                    LoadAccountsAsync(false);
-                }
-                else if (clickedBtn == NavSettingsBtn)
-                {
-                    SwitchToView(ViewSettings);
-                    RefreshTermWrapStatus();
-                }
-            }
-        }
-
-        private void SwitchToView(Grid activeView)
-        {
-            ViewWorkspaces.Visibility = (activeView == ViewWorkspaces) ? Visibility.Visible : Visibility.Collapsed;
-            ViewAccounts.Visibility = (activeView == ViewAccounts) ? Visibility.Visible : Visibility.Collapsed;
-            ViewSettings.Visibility = (activeView == ViewSettings) ? Visibility.Visible : Visibility.Collapsed;
-        }
-
-        private void UpdateNavButtons(Button activeBtn)
-        {
-            Style activeStyle = (Style)FindResource("ActiveSidebarBtnStyle");
-            Style normalStyle = (Style)FindResource("SidebarBtnStyle");
-
-            NavDashboardBtn.Style = (activeBtn == NavDashboardBtn) ? activeStyle : normalStyle;
-            NavAccountsBtn.Style = (activeBtn == NavAccountsBtn) ? activeStyle : normalStyle;
-            NavSettingsBtn.Style = (activeBtn == NavSettingsBtn) ? activeStyle : normalStyle;
-        }
-
-        // ======================= 标签页管理与切换 =======================
-
-        private void WorkspaceTabs_SelectionChanged(object sender, SelectionChangedEventArgs e)
-        {
-            if (WorkspaceTabs.SelectedIndex == -1)
-            {
-                // 显示仪表盘
-                DashboardGridView.Visibility = Visibility.Visible;
-
-                // 隐藏所有活跃的会话控件，解决 WinFormsHost 遮挡仪表盘的问题
-                foreach (var item in _connections)
-                {
-                    if (item.RdpControl != null)
-                        item.RdpControl.IsHiddenSession = true;
-                }
-
-                // 虚无化后台容器以切换展示，但由于仍保留在视觉树，后台依然能够保持渲染与截图
-                ActiveRdpContainer.Opacity = 0;
-                ActiveRdpContainer.IsHitTestVisible = false;
-                ActiveRdpContainer.Visibility = Visibility.Visible;
-            }
-            else
-            {
-                // 隐藏仪表盘，显示会话页面
-                DashboardGridView.Visibility = Visibility.Collapsed;
-                ActiveRdpContainer.Opacity = 1;
-                ActiveRdpContainer.IsHitTestVisible = true;
-                ActiveRdpContainer.Visibility = Visibility.Visible;
-
-                // 激活对应的 RDP 控制实例，将其余保活会话隐形
-                if (WorkspaceTabs.SelectedItem is TabItem selectedTab && selectedTab.Tag is ConnectionItem connItem)
-                {
-                    foreach (var item in _connections)
-                    {
-                        if (item.RdpControl != null)
-                        {
-                            if (item == connItem)
-                            {
-                                item.RdpControl.IsHiddenSession = false;
-                            }
-                            else
-                            {
-                                item.RdpControl.IsHiddenSession = true;
-                            }
-                        }
-                    }
-                }
-            }
-        }
-
-        private void CloseTabToKeepAlive(ConnectionItem connItem)
-        {
-            Logger.LogInfo($"关闭标签页并保活会话: {connItem.FriendlyName}");
-            if (connItem.RdpControl != null && connItem.RdpControl.IsConnected)
-            {
-                // 虚假断开：将 RDP 控件的透明度调为 0，允许其在后台维持渲染
-                connItem.RdpControl.IsHiddenSession = true;
-                connItem.StatusText = "后台保活";
-                connItem.StatusBrush = Brushes.Green; // 后台运行时状态为绿色
-            }
-
-            // 从 Tab 列表中移除对应标签页
-            TabItem? tabToRemove = null;
-            for (int i = 0; i < WorkspaceTabs.Items.Count; i++)
-            {
-                if (WorkspaceTabs.Items[i] is TabItem t && t.Tag == connItem)
-                {
-                    tabToRemove = t;
-                    break;
-                }
-            }
-
-            if (tabToRemove != null)
-            {
-                WorkspaceTabs.Items.Remove(tabToRemove);
-            }
-
-            // 切换回仪表盘或前一个标签页
-            if (WorkspaceTabs.Items.Count > 0)
-            {
-                WorkspaceTabs.SelectedIndex = WorkspaceTabs.Items.Count - 1;
-            }
-            else
-            {
-                WorkspaceTabs.SelectedIndex = -1;
-                UpdateNavButtons(NavDashboardBtn);
-            }
-        }
-
-        // ======================= 定时器与卡片截图 =======================
-
-        private void ThumbnailTimer_Tick(object? sender, EventArgs e)
-        {
-            foreach (var conn in _connections)
-            {
-                if (conn.RdpControl != null && conn.RdpControl.IsConnected)
-                {
-                    var thumb = conn.RdpControl.CaptureThumbnail();
-                    if (thumb != null)
-                    {
-                        conn.Thumbnail = thumb;
-                        conn.PlaceholderVisibility = Visibility.Collapsed;
-                    }
-                }
-            }
-        }
-
-        // ======================= 卡片按钮操作事件 =======================
-
-        private void OpenSessionTab_Click(object sender, RoutedEventArgs e)
-        {
-            if (sender is Button btn && btn.Tag is string connId)
-            {
-                var connItem = _connections.FirstOrDefault(c => c.Id == connId);
-                if (connItem == null) return;
-
-                Logger.LogInfo($"开始打开或切换至会话标签: FriendlyName={connItem.FriendlyName}");
-
-                // 切换回主视图
-                SwitchToView(ViewWorkspaces);
-                UpdateNavButtons(NavDashboardBtn);
-
-                // 检查是否已存在 Tab 页
-                TabItem? existingTab = null;
-                for (int i = 0; i < WorkspaceTabs.Items.Count; i++)
-                {
-                    if (WorkspaceTabs.Items[i] is TabItem t && t.Tag == connItem)
-                    {
-                        existingTab = t;
-                        break;
-                    }
-                }
-
-                if (existingTab != null)
-                {
-                    Logger.LogInfo("找到已存在的会话标签页，直接切换选中。");
-                    WorkspaceTabs.SelectedItem = existingTab;
+                    SelectedAccountPasswordTxt.Password = pwd;
                 }
                 else
                 {
-                    // 控件未初始化
-                    if (connItem.RdpControl == null)
-                    {
-                        Logger.LogInfo("新建 RdpClientControl 实例并加入视觉树。");
-                        var rdpCtrl = new RdpClientControl();
-                        connItem.RdpControl = rdpCtrl;
-
-                        // 将控件塞入常驻容器
-                        ActiveRdpContainer.Children.Add(rdpCtrl);
-
-                        connItem.StatusText = "正在连接...";
-                        connItem.StatusBrush = Brushes.Orange;
-
-                        // 绑定事件
-                        rdpCtrl.OnRdpConnected += (s, ev) =>
-                        {
-                            Logger.LogInfo($"收到 RdpClientControl.OnRdpConnected 连接成功回调: {connItem.FriendlyName}");
-                            Dispatcher.Invoke(() =>
-                            {
-                                connItem.StatusText = "已连接";
-                                connItem.StatusBrush = (Brush?)new BrushConverter().ConvertFromString("#0070F3") ?? Brushes.Blue;
-                                connItem.ActiveActionsVisibility = Visibility.Visible;
-                                connItem.PlaceholderVisibility = Visibility.Collapsed;
-                                connItem.Thumbnail = rdpCtrl.CaptureThumbnail();
-                            });
-                        };
-
-                        rdpCtrl.OnRdpDisconnected += (s, reason) =>
-                        {
-                            Logger.LogWarning($"收到 RdpClientControl.OnRdpDisconnected 连接断开回调: {connItem.FriendlyName}, 原因: {reason}");
-                            Dispatcher.Invoke(() =>
-                            {
-                                if (connItem.IsBeingDeleted)
-                                {
-                                    Logger.LogInfo($"检测到连接项 '{connItem.FriendlyName}' 正在被主动删除，静默跳过意外断开提示。");
-                                    return;
-                                }
-
-                                connItem.StatusText = "已断开";
-                                connItem.StatusBrush = Brushes.Red;
-                                connItem.ActiveActionsVisibility = Visibility.Collapsed;
-                                connItem.PlaceholderVisibility = Visibility.Visible;
-                                connItem.Thumbnail = null;
-
-                                if (connItem.RdpControl != null)
-                                {
-                                    ActiveRdpContainer.Children.Remove(connItem.RdpControl);
-                                    connItem.RdpControl = null;
-                                }
-
-                                TabItem? tabToRemove = null;
-                                for (int i = 0; i < WorkspaceTabs.Items.Count; i++)
-                                {
-                                    if (WorkspaceTabs.Items[i] is TabItem t && t.Tag == connItem)
-                                    {
-                                        tabToRemove = t;
-                                        break;
-                                    }
-                                }
-                                if (tabToRemove != null)
-                                {
-                                    WorkspaceTabs.Items.Remove(tabToRemove);
-                                }
-
-                                MessageBox.Show($"会话 '{connItem.FriendlyName}' 发生意外断开: {reason}", "会话断开", MessageBoxButton.OK, MessageBoxImage.Warning);
-                            });
-                        };
-
-                        // 触发 RDP 连接
-                        bool enableUsb = OptUsbChk.IsChecked == true;
-                        bool enableSmartSizing = OptSmartSizingChk.IsChecked == true;
-                        bool enableClipboard = OptClipboardChk.IsChecked == true;
-                        bool muteAudio = OptMuteChk.IsChecked == true;
-                        rdpCtrl.Connect(connItem.Server, connItem.Username, connItem.Password, 
-                            enableUsb, enableSmartSizing, enableClipboard, muteAudio,
-                            connItem.DesktopWidth, connItem.DesktopHeight, connItem.DesktopScaleFactor);
-                    }
-
-                    Logger.LogInfo("在 WorkspaceTabs 中创建并添加新的 TabItem 标签页。");
-                    // 新建 TabPage
-                    var newTab = new TabItem { Tag = connItem };
-
-                    // 自定义带关闭按钮的标签栏 Header
-                    var headerPanel = new StackPanel { Orientation = Orientation.Horizontal };
-                    headerPanel.Children.Add(new TextBlock { Text = connItem.FriendlyName, VerticalAlignment = VerticalAlignment.Center });
-
-                    var closeBtn = new Button
-                    {
-                        Content = "×",
-                        Style = (Style)FindResource("TabCloseButtonStyle"),
-                        Margin = new Thickness(8, 0, 0, 0)
-                    };
-                    closeBtn.Click += (s, ev) =>
-                    {
-                        ev.Handled = true;
-                        CloseTabToKeepAlive(connItem);
-                    };
-                    headerPanel.Children.Add(closeBtn);
-
-                    newTab.Header = headerPanel;
-                    WorkspaceTabs.Items.Add(newTab);
-                    WorkspaceTabs.SelectedItem = newTab;
+                    SelectedAccountPasswordTxt.Password = string.Empty;
                 }
             }
         }
 
-        private void KeepAliveDisconnect_Click(object sender, RoutedEventArgs e)
+        private void SelectedAccountPasswordTxt_PasswordChanged(object sender, RoutedEventArgs e)
         {
-            if (sender is FrameworkElement element && element.Tag is string connId)
-            {
-                var connItem = _connections.FirstOrDefault(c => c.Id == connId);
-                if (connItem == null) return;
-
-                CloseTabToKeepAlive(connItem);
-            }
+            // 用户输入时临时更新，点击保存密码或者直接连接时会保存
         }
 
-        private void FullDisconnect_Click(object sender, RoutedEventArgs e)
+        private void SaveCredBtn_Click(object sender, RoutedEventArgs e)
         {
-            if (sender is FrameworkElement element && element.Tag is string connId)
+            if (AccountCombo.SelectedItem is string username)
             {
-                var connItem = _connections.FirstOrDefault(c => c.Id == connId);
-                if (connItem == null) return;
-
-                var result = MessageBox.Show($"是否确定彻底断开会话 '{connItem.FriendlyName}'？这将清理该隔离账户下的所有执行进程。", "断开连接", MessageBoxButton.YesNo, MessageBoxImage.Question);
-                if (result == MessageBoxResult.Yes)
+                string pwd = SelectedAccountPasswordTxt.Password;
+                if (CredentialHelper.SaveCredential($"RDPManager:{username}", username, pwd))
                 {
-                    Logger.LogInfo($"彻底注销会话并清理句柄: {connItem.FriendlyName}");
-                    connItem.RdpControl?.Disconnect();
-                }
-            }
-        }
-
-        // ======================= 新建连接弹窗 =======================
-
-        private async void OpenNewConnection_Click(object sender, RoutedEventArgs e)
-        {
-            TargetPasswordBox.Password = string.Empty;
-            FriendlyNameTxt.Text = string.Empty;
-
-            // 自动检测系统分辨率与缩放比
-            try
-            {
-                int scaleFactor = 100;
-                double dpiScale = 1.0;
-                var presentationSource = PresentationSource.FromVisual(this);
-                if (presentationSource != null)
-                {
-                    dpiScale = presentationSource.CompositionTarget.TransformToDevice.M11;
-                    scaleFactor = (int)Math.Round(dpiScale * 100);
-                }
-                
-                int physWidth = (int)Math.Round(SystemParameters.PrimaryScreenWidth * dpiScale);
-                int physHeight = (int)Math.Round(SystemParameters.PrimaryScreenHeight * dpiScale);
-                string resStr = $"{physWidth}x{physHeight}";
-
-                bool foundRes = false;
-                foreach (ComboBoxItem item in ResolutionCombo.Items)
-                {
-                    if (item.Tag?.ToString() == resStr)
-                    {
-                        ResolutionCombo.SelectedItem = item;
-                        foundRes = true;
-                        break;
-                    }
-                }
-                if (!foundRes)
-                {
-                    var newItem = new ComboBoxItem { Content = $"本机 ({resStr})", Tag = resStr };
-                    ResolutionCombo.Items.Add(newItem);
-                    ResolutionCombo.SelectedItem = newItem;
-                }
-
-                foreach (ComboBoxItem item in ScaleFactorCombo.Items)
-                {
-                    if (item.Tag?.ToString() == scaleFactor.ToString())
-                    {
-                        ScaleFactorCombo.SelectedItem = item;
-                        break;
-                    }
-                }
-            }
-            catch (Exception ex)
-            {
-                Logger.LogError("自动检测分辨率失败", ex);
-            }
-
-            TargetComputerCombo.Items.Clear();
-            TargetComputerCombo.Items.Add("127.0.0.2");
-
-            bool showLoading = !AccountHelper.HasCache();
-            if (showLoading) ShowLoading("正在读取账户配置...");
-            try
-            {
-                var localAccounts = await System.Threading.Tasks.Task.Run(() => AccountHelper.GetLocalAccounts(false));
-                foreach (var acc in localAccounts)
-                {
-                    TargetComputerCombo.Items.Add(acc.Name);
-                }
-            }
-            catch (Exception ex)
-            {
-                Logger.LogError("读取本地账户列表失败", ex);
-            }
-            finally
-            {
-                if (showLoading) HideLoading();
-            }
-
-            if (TargetComputerCombo.Items.Count > 0)
-            {
-                TargetComputerCombo.SelectedIndex = 0;
-            }
-
-            NewConnectionOverlay.Visibility = Visibility.Visible;
-        }
-
-        private void CloseNewConnection_Click(object sender, RoutedEventArgs e)
-        {
-            NewConnectionOverlay.Visibility = Visibility.Collapsed;
-        }
-
-        private void ResolutionCombo_SelectionChanged(object sender, SelectionChangedEventArgs e)
-        {
-            if (ScaleFactorCombo == null) return;
-            if (ResolutionCombo.SelectedItem is ComboBoxItem item && item.Tag is string resStr)
-            {
-                if (resStr == "0x0")
-                {
-                    // 自适应窗口，不强制缩放比
-                    ScaleFactorCombo.IsEnabled = false;
-                    return;
-                }
-
-                var parts = resStr.Split('x');
-                if (parts.Length == 2 && int.TryParse(parts[0], out int width))
-                {
-                    // 宽度 >= 1920 (1080p) 则激活缩放比下拉框
-                    ScaleFactorCombo.IsEnabled = width >= 1920;
-                    if (!ScaleFactorCombo.IsEnabled)
-                    {
-                        // 非高分屏默认 100%
-                        foreach (ComboBoxItem scaleItem in ScaleFactorCombo.Items)
-                        {
-                            if (scaleItem.Tag?.ToString() == "100")
-                            {
-                                ScaleFactorCombo.SelectedItem = scaleItem;
-                                break;
-                            }
-                        }
-                    }
-                }
-            }
-        }
-
-        private void AddConnectionSubmit_Click(object sender, RoutedEventArgs e)
-        {
-            string targetText = TargetComputerCombo.Text.Trim();
-            string password = TargetPasswordBox.Password;
-            string friendlyName = FriendlyNameTxt.Text.Trim();
-
-            if (string.IsNullOrEmpty(targetText))
-            {
-                MessageBox.Show("请指定目标主机或选择本地隔离账户。");
-                return;
-            }
-
-            string server = targetText;
-            string username = string.Empty;
-
-            if (targetText.Contains("\\"))
-            {
-                string[] parts = targetText.Split('\\');
-                server = parts[0];
-                username = parts[1];
-            }
-            else if (!targetText.Contains(".") && !targetText.Equals("localhost", StringComparison.OrdinalIgnoreCase))
-            {
-                // 本地多会话连接本机首选 loopback 地址 127.0.0.2，避免单路 IP 拦截
-                server = "127.0.0.2";
-                username = targetText;
-            }
-            else
-            {
-                MessageBox.Show("非法连接信息，请按照以下格式之一输入:\n• 本地账户名（如: RpaUser_1）\n• 远程目标: IP\\用户名（如: 192.168.1.10\\Administrator）", "格式错误", MessageBoxButton.OK, MessageBoxImage.Warning);
-                return;
-            }
-
-            // 密码读取逻辑（如果在界面没有输入，则尝试去 Credential Manager 获取）
-            if (string.IsNullOrEmpty(password))
-            {
-                if (CredentialHelper.GetCredential($"RDPManager:{username}", out _, out string savedPwd))
-                {
-                    password = savedPwd;
+                    MessageBox.Show($"账户 '{username}' 的凭证密码保存成功！下次登录将自动读取填充。", "保存成功", MessageBoxButton.OK, MessageBoxImage.Information);
                 }
                 else
                 {
-                    MessageBox.Show($"未找到本地账户 '{username}' 的保存密码，请在上方手动输入。", "请输入密码");
-                    return;
+                    MessageBox.Show("密码保存失败，请检查凭据管理器权限。", "错误", MessageBoxButton.OK, MessageBoxImage.Error);
                 }
             }
             else
             {
-                // 输入了密码，对其进行持久化更新
-                CredentialHelper.SaveCredential($"RDPManager:{username}", username, password);
+                MessageBox.Show("请先在下拉框中选择一个系统账号！", "提示", MessageBoxButton.OK, MessageBoxImage.Warning);
             }
-
-            if (string.IsNullOrEmpty(friendlyName))
-            {
-                friendlyName = $"{username} ({server})";
-            }
-
-            int desktopWidth = 0;
-            int desktopHeight = 0;
-            if (ResolutionCombo.SelectedItem is ComboBoxItem resItem && resItem.Tag is string resTag)
-            {
-                if (resTag != "0x0" && resTag.Contains("x"))
-                {
-                    var parts = resTag.Split('x');
-                    int.TryParse(parts[0], out desktopWidth);
-                    int.TryParse(parts[1], out desktopHeight);
-                }
-            }
-
-            int scaleFactor = 100;
-            if (ScaleFactorCombo.IsEnabled && ScaleFactorCombo.SelectedItem is ComboBoxItem scaleItem && scaleItem.Tag is string scaleTag)
-            {
-                int.TryParse(scaleTag, out scaleFactor);
-            }
-
-            var newItem = new ConnectionItem
-            {
-                Id = Guid.NewGuid().ToString(),
-                FriendlyName = friendlyName,
-                Server = server,
-                Username = username,
-                Password = password,
-                DesktopWidth = desktopWidth,
-                DesktopHeight = desktopHeight,
-                DesktopScaleFactor = scaleFactor
-            };
-
-            _connections.Add(newItem);
-            SaveConnections();
-            NewConnectionOverlay.Visibility = Visibility.Collapsed;
         }
-
-        // ======================= 隔离账户管理 =======================
 
         private async void CreateAccount_Click(object sender, RoutedEventArgs e)
         {
@@ -679,17 +290,17 @@ namespace rdpManager
 
             if (string.IsNullOrEmpty(username) || string.IsNullOrEmpty(password))
             {
-                MessageBox.Show("用户名和密码不能为空。");
+                MessageBox.Show("隔离用户账号与初始密码不能为空！", "提示", MessageBoxButton.OK, MessageBoxImage.Warning);
                 return;
             }
 
-            ShowLoading($"正在创建隔离账号 '{username}'...");
+            ShowLoading($"正在创建隔离账号 '{username}' 并配置环境...");
             bool success = false;
             string error = string.Empty;
 
             try
             {
-                var result = await System.Threading.Tasks.Task.Run(() =>
+                var result = await Task.Run(() =>
                 {
                     bool createResult = AccountHelper.CreateRobotAccount(username, password, out string err);
                     if (createResult)
@@ -706,7 +317,7 @@ namespace rdpManager
             {
                 success = false;
                 error = ex.Message;
-                Logger.LogError($"创建隔离账号 '{username}' 出现未处理异常", ex);
+                Logger.LogError($"创建隔离账号 '{username}' 异常", ex);
             }
             finally
             {
@@ -715,7 +326,7 @@ namespace rdpManager
 
             if (success)
             {
-                MessageBox.Show($"隔离账号 '{username}' 已创建成功，自动完成管理员特权分配与环境首登优化！", "创建成功", MessageBoxButton.OK, MessageBoxImage.Information);
+                MessageBox.Show($"账号 '{username}' 创建成功！自动完成管理员环境和首登组策略优化。", "创建成功", MessageBoxButton.OK, MessageBoxImage.Information);
                 NewUserTxt.Text = string.Empty;
                 NewPassTxt.Password = string.Empty;
                 LoadAccountsAsync(true);
@@ -728,9 +339,9 @@ namespace rdpManager
 
         private async void DeleteAccount_Click(object sender, RoutedEventArgs e)
         {
-            if (sender is Button btn && btn.Tag is string username)
+            if (AccountCombo.SelectedItem is string username)
             {
-                var result = MessageBox.Show($"警告：您即将删除本地系统账户 '{username}'。删除后该账户所有会话、数据、桌面缓存均将被清空！是否继续？", "确认删除", MessageBoxButton.YesNo, MessageBoxImage.Stop);
+                var result = MessageBox.Show($"警告：您即将从 Windows 系统中删除账号 '{username}'。\n这会永久清空该用户的所有文件与桌面数据！是否确认删除？", "确认删除", MessageBoxButton.YesNo, MessageBoxImage.Stop);
                 if (result == MessageBoxResult.Yes)
                 {
                     ShowLoading($"正在删除账户 '{username}'...");
@@ -739,7 +350,7 @@ namespace rdpManager
 
                     try
                     {
-                        var deleteResult = await System.Threading.Tasks.Task.Run(() =>
+                        var deleteResult = await Task.Run(() =>
                         {
                             return AccountHelper.DeleteRobotAccount(username, out string err)
                                 ? new { Success = true, Error = string.Empty }
@@ -762,7 +373,7 @@ namespace rdpManager
 
                     if (success)
                     {
-                        MessageBox.Show($"账户 '{username}' 已成功删除。", "提示", MessageBoxButton.OK, MessageBoxImage.Information);
+                        MessageBox.Show($"系统账号 '{username}' 已彻底删除。", "提示", MessageBoxButton.OK, MessageBoxImage.Information);
                         LoadAccountsAsync(true);
                     }
                     else
@@ -771,20 +382,64 @@ namespace rdpManager
                     }
                 }
             }
+            else
+            {
+                MessageBox.Show("请先选择需要删除的系统账号！", "提示", MessageBoxButton.OK, MessageBoxImage.Warning);
+            }
         }
 
-        // ======================= 系统设置选项 =======================
+        // ======================= 并发补丁管理 (TermWrap) =======================
+
+        private void RefreshTermWrapStatus()
+        {
+            try
+            {
+                bool isActive = TermWrapDeployer.IsMultiSessionActive();
+                bool isRunning = TermWrapDeployer.IsTermServiceRunning();
+                
+                Logger.LogInfo($"检测 TermWrap 状态: {(isActive ? "已应用" : "未应用")}, 远程服务: {(isRunning ? "运行中" : "停止")}");
+                
+                if (isActive)
+                {
+                    if (isRunning)
+                    {
+                        StatusDot.Fill = (Brush)new BrushConverter().ConvertFromString("#4ADE80")!; // 绿色
+                        StatusTxt.Text = "并发会话已激活 (多用户并发就绪)";
+                        TermWrapStatusTxt.Text = "已激活 (服务运行中)";
+                        TermWrapStatusTxt.Foreground = (Brush)new BrushConverter().ConvertFromString("#4ADE80")!;
+                    }
+                    else
+                    {
+                        StatusDot.Fill = (Brush)new BrushConverter().ConvertFromString("#FACC15")!; // 黄色
+                        StatusTxt.Text = "补丁已激活，但远程桌面服务已停止";
+                        TermWrapStatusTxt.Text = "已激活 (服务已停止)";
+                        TermWrapStatusTxt.Foreground = (Brush)new BrushConverter().ConvertFromString("#FACC15")!;
+                    }
+                }
+                else
+                {
+                    StatusDot.Fill = (Brush)new BrushConverter().ConvertFromString("#E94560")!; // 玫红/红色
+                    StatusTxt.Text = "并发限制未解除 / 仅单会话模式";
+                    TermWrapStatusTxt.Text = "未安装 / 默认单会话限制";
+                    TermWrapStatusTxt.Foreground = (Brush)new BrushConverter().ConvertFromString("#E94560")!;
+                }
+            }
+            catch (Exception ex)
+            {
+                Logger.LogError("获取补丁状态异常", ex);
+            }
+        }
 
         private async void DeployPatch_Click(object sender, RoutedEventArgs e)
         {
             DeployPatchBtn.IsEnabled = false;
-            ShowLoading("正在部署 TermWrap 补丁，这可能需要几十秒并断开所有活跃的远程连接，请耐心等待...");
+            ShowLoading("正在部署并应用 TermWrap 并发补丁，可能需要几秒钟时间，这会导致所有活跃的 RDP 会话临时断开...");
             bool success = false;
             string error = string.Empty;
 
             try
             {
-                var result = await System.Threading.Tasks.Task.Run(() =>
+                var result = await Task.Run(() =>
                 {
                     bool deployResult = TermWrapDeployer.DeployPatch(out string err);
                     return new { Success = deployResult, Error = err };
@@ -807,27 +462,27 @@ namespace rdpManager
 
             if (success)
             {
-                MessageBox.Show("TermWrap 多路并发 RDP 补丁部署成功！\n系统已解除多路限制，外设摄像头重定向等底层策略已激活。", "激活成功", MessageBoxButton.OK, MessageBoxImage.Information);
+                MessageBox.Show("多路并发 RDP 补丁部署并激活成功！系统目前允许多账号同时远程登录桌面运行任务。", "激活成功", MessageBoxButton.OK, MessageBoxImage.Information);
             }
             else
             {
-                MessageBox.Show($"部署失败: {error}\n请确认已排除安全软件拦截，或重启电脑后再试。", "错误", MessageBoxButton.OK, MessageBoxImage.Error);
+                MessageBox.Show($"部署失败: {error}\n请检查防杀毒软件拦截，并确保以管理员特权运行此程序。", "错误", MessageBoxButton.OK, MessageBoxImage.Error);
             }
         }
 
         private async void UninstallPatch_Click(object sender, RoutedEventArgs e)
         {
-            var result = MessageBox.Show("还原补丁将使 Windows 远程桌面多会话并发功能恢复为系统原始出厂配置。是否继续？", "确认还原", MessageBoxButton.YesNo, MessageBoxImage.Warning);
+            var result = MessageBox.Show("确定要卸载 TermWrap 补丁并还原系统远程服务配置么？\n这会让 Windows 远程服务退回到出厂的单会话限制状态。", "确认还原", MessageBoxButton.YesNo, MessageBoxImage.Warning);
             if (result != MessageBoxResult.Yes) return;
 
             UninstallPatchBtn.IsEnabled = false;
-            ShowLoading("正在还原系统默认配置，这可能会断开活跃的远程连接，请耐心等待...");
+            ShowLoading("正在卸载补丁并重新启动远程桌面服务，请稍候...");
             bool success = false;
             string error = string.Empty;
 
             try
             {
-                var runResult = await System.Threading.Tasks.Task.Run(() =>
+                var runResult = await Task.Run(() =>
                 {
                     bool uninstallResult = TermWrapDeployer.UninstallPatch(out string err);
                     return new { Success = uninstallResult, Error = err };
@@ -850,42 +505,229 @@ namespace rdpManager
 
             if (success)
             {
-                if (string.IsNullOrEmpty(error))
-                {
-                    MessageBox.Show("TermWrap 补丁卸载成功，远程桌面控制服务已恢复出厂配置。", "卸载成功", MessageBoxButton.OK, MessageBoxImage.Information);
-                }
-                else
-                {
-                    MessageBox.Show(error, "卸载提示", MessageBoxButton.OK, MessageBoxImage.Warning);
-                }
+                MessageBox.Show("TermWrap 补丁已彻底卸载，系统已重新加载原始远程控制核心组件。", "卸载成功", MessageBoxButton.OK, MessageBoxImage.Information);
             }
             else
             {
-                MessageBox.Show($"卸载失败: {error}", "还原错误", MessageBoxButton.OK, MessageBoxImage.Error);
+                MessageBox.Show($"卸载失败: {error}", "错误", MessageBoxButton.OK, MessageBoxImage.Error);
             }
         }
+
+        // ======================= 发起 RDP 连接逻辑 =======================
+
+        private void ConnectBtn_Click(object sender, RoutedEventArgs e)
+        {
+            if (!(AccountCombo.SelectedItem is string username))
+            {
+                MessageBox.Show("请先选择要发起远程连接的系统隔离账号！", "提示", MessageBoxButton.OK, MessageBoxImage.Warning);
+                return;
+            }
+
+            string password = SelectedAccountPasswordTxt.Password;
+            if (string.IsNullOrEmpty(password))
+            {
+                MessageBox.Show("请输入该系统账号的登录密码凭据，以便自动填写进行单机免密 RDP 隔离登录！", "提示", MessageBoxButton.OK, MessageBoxImage.Warning);
+                return;
+            }
+
+            // 保存一次凭证密码
+            CredentialHelper.SaveCredential($"RDPManager:{username}", username, password);
+
+            // 获取画面参数
+            int width = 0;
+            int height = 0;
+            if (ResolutionCombo.SelectedItem is ComboBoxItem resItem && resItem.Tag is string resStr)
+            {
+                if (resStr != "0x0")
+                {
+                    var parts = resStr.Split('x');
+                    if (parts.Length == 2 && int.TryParse(parts[0], out int w) && int.TryParse(parts[1], out int h))
+                    {
+                        width = w;
+                        height = h;
+                    }
+                }
+            }
+
+            int scale = 100;
+            if (ScaleCombo.SelectedItem is ComboBoxItem scaleItem && scaleItem.Tag is string scaleStr && int.TryParse(scaleStr, out int sValue))
+            {
+                scale = sValue;
+            }
+
+            bool clipboard = ClipboardChk.IsChecked == true;
+            bool audio = AudioChk.IsChecked == true;
+            bool mic = MicChk.IsChecked == true;
+            bool drives = DrivesChk.IsChecked == true;
+            bool printers = PrintersChk.IsChecked == true;
+            bool smartSizing = SmartSizingChk.IsChecked == true;
+            bool autoKeepAlive = AutoKeepAliveChk.IsChecked == true;
+
+            StartRdpSession(username, password, width, height, scale, clipboard, audio, mic, drives, printers, smartSizing, autoKeepAlive);
+        }
+
+        private void StartRdpSession(string username, string password, 
+            int width, int height, int scale, 
+            bool clipboard, bool audio, bool mic, bool drives, bool printers, bool smartSizing, bool autoKeepAlive)
+        {
+            // 如果窗口已存在，则激活它
+            if (_activeWindows.TryGetValue(username, out var activeWin))
+            {
+                activeWin.WindowState = WindowState.Normal;
+                activeWin.Activate();
+                return;
+            }
+
+            // 本地隔离 RDP 连接回送地址：使用 127.0.0.2 强制系统进行网络隔离环回以启用多会话
+            string server = "127.0.0.2";
+
+            var rdpWin = new RdpWindow(
+                server: server,
+                username: username,
+                password: password,
+                width: width,
+                height: height,
+                scaleFactor: scale,
+                redirectClipboard: clipboard,
+                redirectAudio: audio,
+                redirectMic: mic,
+                redirectDrives: drives,
+                redirectPrinters: printers,
+                smartSizing: smartSizing,
+                autoKeepAlive: autoKeepAlive
+            );
+
+            // 维护保活用户集合
+            lock (_keepAliveUsers)
+            {
+                if (autoKeepAlive)
+                {
+                    _keepAliveUsers.Add(username);
+                }
+                else
+                {
+                    _keepAliveUsers.Remove(username);
+                }
+            }
+
+            _activeWindows[username] = rdpWin;
+            rdpWin.WindowClosedEvent += (win) =>
+            {
+                _activeWindows.Remove(win.UserName);
+            };
+
+            rdpWin.Show();
+        }
+
+        // ======================= 活跃会话操作 =======================
+
+        private void OpenSession_Click(object sender, RoutedEventArgs e)
+        {
+            if (sender is Button btn && btn.DataContext is WtsSessionInfo session)
+            {
+                // 获取密码凭据
+                if (CredentialHelper.GetCredential($"RDPManager:{session.UserName}", out _, out string password) && !string.IsNullOrEmpty(password))
+                {
+                    // 获取当前界面上的重定向配置来打开会话
+                    int width = session.ClientWidth > 0 ? session.ClientWidth : 1920;
+                    int height = session.ClientHeight > 0 ? session.ClientHeight : 1080;
+
+                    int scale = 100;
+                    if (ScaleCombo.SelectedItem is ComboBoxItem scaleItem && scaleItem.Tag is string scaleStr && int.TryParse(scaleStr, out int sValue))
+                    {
+                        scale = sValue;
+                    }
+
+                    StartRdpSession(
+                        username: session.UserName,
+                        password: password,
+                        width: width,
+                        height: height,
+                        scale: scale,
+                        clipboard: ClipboardChk.IsChecked == true,
+                        audio: AudioChk.IsChecked == true,
+                        mic: MicChk.IsChecked == true,
+                        drives: DrivesChk.IsChecked == true,
+                        printers: PrintersChk.IsChecked == true,
+                        smartSizing: SmartSizingChk.IsChecked == true,
+                        autoKeepAlive: AutoKeepAliveChk.IsChecked == true
+                    );
+                }
+                else
+                {
+                    MessageBox.Show($"未找到本地隔离账号 '{session.UserName}' 的密码凭证，请先在上方 [系统隔离账号管理] 中输入该账号的密码并点击 [保存密码]。", "凭证缺失", MessageBoxButton.OK, MessageBoxImage.Warning);
+                }
+            }
+        }
+
+        private void DisconnectSession_Click(object sender, RoutedEventArgs e)
+        {
+            if (sender is Button btn && btn.Tag is int sessionId)
+            {
+                string username = _sessions.FirstOrDefault(s => s.SessionId == sessionId)?.UserName ?? $"会话 {sessionId}";
+                var confirm = MessageBox.Show($"确定断开账户 '{username}' 的远程会话吗？(会话程序将在后台挂起，保留当前桌面状态)", "断开确认", MessageBoxButton.YesNo, MessageBoxImage.Question);
+                if (confirm == MessageBoxResult.Yes)
+                {
+                    WtsHelper.DisconnectSession(sessionId);
+                    PollTimer_Tick(null, EventArgs.Empty);
+                }
+            }
+        }
+
+        private void LogoffSessionContext_Click(object sender, RoutedEventArgs e)
+        {
+            if (SessionsListView.SelectedItem is WtsSessionInfo session)
+            {
+                var confirm = MessageBox.Show($"警告：强制注销账户 '{session.UserName}' 会直接强制终止该用户下的所有运行程序，并丢失未保存的桌面数据，确认继续？", "注销警告", MessageBoxButton.YesNo, MessageBoxImage.Warning);
+                if (confirm == MessageBoxResult.Yes)
+                {
+                    WtsHelper.LogoffSession(session.SessionId);
+                    PollTimer_Tick(null, EventArgs.Empty);
+                }
+            }
+        }
+
+        // ======================= UI 面板折叠交互 =======================
+
+        private void ToggleModule_Click(object sender, MouseButtonEventArgs e)
+        {
+            if (sender is FrameworkElement header && header.Tag is string targetName)
+            {
+                var content = this.FindName(targetName) as FrameworkElement;
+                if (content != null)
+                {
+                    content.Visibility = content.Visibility == Visibility.Visible ? Visibility.Collapsed : Visibility.Visible;
+                    
+                    var arrowName = targetName.Replace("Content", "Arrow");
+                    var arrow = this.FindName(arrowName) as TextBlock;
+                    if (arrow != null)
+                    {
+                        arrow.Text = content.Visibility == Visibility.Visible ? "▲" : "▽";
+                    }
+                }
+            }
+        }
+
+        // ======================= 系统托盘与关闭行为控制 =======================
 
         private void InitializeNotifyIcon()
         {
             try
             {
                 _notifyIcon = new System.Windows.Forms.NotifyIcon();
-                _notifyIcon.Icon = System.Drawing.SystemIcons.Application;
-                _notifyIcon.Text = "RDP Manager - RPA 隔离桌面管理器";
+                _notifyIcon.Icon = System.Drawing.SystemIcons.Shield; // 用系统原生盾牌图标代表安全/保活
+                _notifyIcon.Text = "LocalRDP — 多用户 RPA 隔离管理器";
                 _notifyIcon.Visible = true;
-                _notifyIcon.DoubleClick += (s, args) =>
-                {
-                    ShowMainWindow();
-                };
+                _notifyIcon.DoubleClick += (s, args) => ShowMainWindow();
 
                 var contextMenu = new System.Windows.Forms.ContextMenuStrip();
-                contextMenu.Items.Add("显示主窗口", null, (s, args) => ShowMainWindow());
+                contextMenu.Items.Add("显示主界面", null, (s, args) => ShowMainWindow());
                 contextMenu.Items.Add("退出程序", null, (s, args) => ExitApplication());
                 _notifyIcon.ContextMenuStrip = contextMenu;
             }
             catch (Exception ex)
             {
-                Logger.LogError("初始化系统托盘图标失败", ex);
+                Logger.LogError("初始化托盘图标失败", ex);
             }
         }
 
@@ -906,131 +748,18 @@ namespace rdpManager
         {
             _isExplicitExit = true;
             _notifyIcon?.Dispose();
-            
-            // 安全断开所有连接
-            foreach (var conn in _connections)
+
+            // 主动释放所有活动窗口中的 RDP 物理连接
+            foreach (var win in _activeWindows.Values.ToArray())
             {
                 try
                 {
-                    conn.RdpControl?.Disconnect();
+                    win.Close();
                 }
                 catch { }
             }
-            
+
             Application.Current.Shutdown();
-        }
-
-        // ======================= 连接持久化与删除 =======================
-        private static readonly string ConnectionsFilePath = System.IO.Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "connections.json");
-
-        private void SaveConnections()
-        {
-            try
-            {
-                var options = new System.Text.Json.JsonSerializerOptions { WriteIndented = true };
-                string json = System.Text.Json.JsonSerializer.Serialize(_connections, options);
-                System.IO.File.WriteAllText(ConnectionsFilePath, json, System.Text.Encoding.UTF8);
-                Logger.LogInfo("成功持久化连接配置到 connections.json");
-            }
-            catch (Exception ex)
-            {
-                Logger.LogError("保存连接配置到 JSON 失败", ex);
-            }
-        }
-
-        private void LoadConnections()
-        {
-            try
-            {
-                if (System.IO.File.Exists(ConnectionsFilePath))
-                {
-                    string json = System.IO.File.ReadAllText(ConnectionsFilePath, System.Text.Encoding.UTF8);
-                    var items = System.Text.Json.JsonSerializer.Deserialize<List<ConnectionItem>>(json);
-                    if (items != null)
-                    {
-                        _connections.Clear();
-                        foreach (var item in items)
-                        {
-                            _connections.Add(item);
-                        }
-                        Logger.LogInfo($"成功从 connections.json 加载了 {items.Count} 个连接项");
-                    }
-                }
-            }
-            catch (Exception ex)
-            {
-                Logger.LogError("从 JSON 加载连接配置失败", ex);
-            }
-        }
-
-        private void DeleteConnection_Click(object sender, RoutedEventArgs e)
-        {
-            if (sender is FrameworkElement element && element.Tag is string connId)
-            {
-                var connItem = _connections.FirstOrDefault(c => c.Id == connId);
-                if (connItem == null) return;
-
-                var result = MessageBox.Show($"确定要删除连接设备 '{connItem.FriendlyName}' 吗？此操作不会影响本地系统账户，但会清除该连接的保存配置。", "确认删除", MessageBoxButton.YesNo, MessageBoxImage.Question);
-                if (result == MessageBoxResult.Yes)
-                {
-                    Logger.LogInfo($"开始主动删除连接设备: {connItem.FriendlyName}");
-                    connItem.IsBeingDeleted = true;
-
-                    // 1. 从 WorkspaceTabs 移除对应的 Tab
-                    TabItem? tabToRemove = null;
-                    for (int i = 0; i < WorkspaceTabs.Items.Count; i++)
-                    {
-                        if (WorkspaceTabs.Items[i] is TabItem t && t.Tag == connItem)
-                        {
-                            tabToRemove = t;
-                            break;
-                        }
-                    }
-                    if (tabToRemove != null)
-                    {
-                        WorkspaceTabs.Items.Remove(tabToRemove);
-                        if (WorkspaceTabs.Items.Count > 0)
-                        {
-                            WorkspaceTabs.SelectedIndex = WorkspaceTabs.Items.Count - 1;
-                        }
-                        else
-                        {
-                            WorkspaceTabs.SelectedIndex = -1;
-                            UpdateNavButtons(NavDashboardBtn);
-                        }
-                    }
-
-                    // 2. 从视觉容器中移除控件，断开连接
-                    if (connItem.RdpControl != null)
-                    {
-                        var rdpControl = connItem.RdpControl;
-                        ActiveRdpContainer.Children.Remove(rdpControl);
-                        connItem.RdpControl = null;
-                        
-                        // 异步执行断开
-                        System.Threading.Tasks.Task.Run(() =>
-                        {
-                            try
-                            {
-                                rdpControl.Disconnect();
-                            }
-                            catch (Exception ex)
-                            {
-                                Logger.LogWarning($"断开被删除连接 '{connItem.FriendlyName}' 时发生异常: {ex.Message}");
-                            }
-                        });
-                    }
-
-                    // 3. 从列表中移除并保存
-                    _connections.Remove(connItem);
-                    SaveConnections();
-                }
-            }
-        }
-
-        private void EditConnection_Click(object sender, RoutedEventArgs e)
-        {
-            MessageBox.Show("连接设置功能开发中...", "提示", MessageBoxButton.OK, MessageBoxImage.Information);
         }
 
         protected override void OnClosing(CancelEventArgs e)
@@ -1041,7 +770,7 @@ namespace rdpManager
                 return;
             }
 
-            e.Cancel = true; // 拦截默认关闭动作
+            e.Cancel = true; // 拦截窗口的物理关闭，转换为询问
 
             var confirmWin = new CloseConfirmWindow
             {
@@ -1058,7 +787,7 @@ namespace rdpManager
                 this.Hide();
                 try
                 {
-                    _notifyIcon?.ShowBalloonTip(3000, "RDP Manager 已最小化", "程序已最小化到系统托盘，双击托盘图标可重新打开主界面。", System.Windows.Forms.ToolTipIcon.Info);
+                    _notifyIcon?.ShowBalloonTip(3000, "LocalRDP 已最小化", "程序已安全缩入托盘中进行后台 RPA 会话监视与保活锁定。", System.Windows.Forms.ToolTipIcon.Info);
                 }
                 catch { }
             }
@@ -1069,75 +798,22 @@ namespace rdpManager
             _notifyIcon?.Dispose();
             base.OnClosed(e);
         }
-    }
 
-    // ======================= 连接项数据实体 =======================
-
-    public class ConnectionItem : INotifyPropertyChanged
-    {
-        private string _statusText = "未连接";
-        private Brush _statusBrush = Brushes.Gray;
-        private BitmapSource? _thumbnail;
-        private Visibility _placeholderVisibility = Visibility.Visible;
-        private Visibility _activeActionsVisibility = Visibility.Collapsed;
-
-        public string Id { get; set; } = string.Empty;
-        public string FriendlyName { get; set; } = string.Empty;
-        public string Server { get; set; } = string.Empty;
-        public string Username { get; set; } = string.Empty;
-
-        public int DesktopWidth { get; set; } = 0;
-        public int DesktopHeight { get; set; } = 0;
-        public int DesktopScaleFactor { get; set; } = 100;
-
-        [System.Text.Json.Serialization.JsonIgnore]
-        public string Password { get; set; } = string.Empty;
-
-        [System.Text.Json.Serialization.JsonIgnore]
-        public RdpClientControl? RdpControl { get; set; }
-
-        [System.Text.Json.Serialization.JsonIgnore]
-        public bool IsBeingDeleted { get; set; } = false;
-
-        [System.Text.Json.Serialization.JsonIgnore]
-        public string StatusText
+        private void ShowLoading(string message)
         {
-            get => _statusText;
-            set { _statusText = value; OnPropertyChanged(); }
+            Dispatcher.Invoke(() =>
+            {
+                LoadingText.Text = message;
+                GlobalLoadingOverlay.Visibility = Visibility.Visible;
+            });
         }
 
-        [System.Text.Json.Serialization.JsonIgnore]
-        public Brush StatusBrush
+        private void HideLoading()
         {
-            get => _statusBrush;
-            set { _statusBrush = value; OnPropertyChanged(); }
-        }
-
-        [System.Text.Json.Serialization.JsonIgnore]
-        public BitmapSource? Thumbnail
-        {
-            get => _thumbnail;
-            set { _thumbnail = value; OnPropertyChanged(); }
-        }
-
-        [System.Text.Json.Serialization.JsonIgnore]
-        public Visibility PlaceholderVisibility
-        {
-            get => _placeholderVisibility;
-            set { _placeholderVisibility = value; OnPropertyChanged(); }
-        }
-
-        [System.Text.Json.Serialization.JsonIgnore]
-        public Visibility ActiveActionsVisibility
-        {
-            get => _activeActionsVisibility;
-            set { _activeActionsVisibility = value; OnPropertyChanged(); }
-        }
-
-        public event PropertyChangedEventHandler? PropertyChanged;
-        protected void OnPropertyChanged([CallerMemberName] string? propertyName = null)
-        {
-            PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(propertyName));
+            Dispatcher.Invoke(() =>
+            {
+                GlobalLoadingOverlay.Visibility = Visibility.Collapsed;
+            });
         }
     }
 }

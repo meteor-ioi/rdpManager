@@ -5,90 +5,56 @@
         xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
         xmlns:local="clr-namespace:rdpManager"
         mc:Ignorable="d"
-        Title="RDP Manager - RPA 隔离桌面管理器" Height="700" Width="1100"
-        WindowStartupLocation="CenterScreen" Background="#FFFFFF">
+        Title="LocalRDP — 多用户 RPA 隔离管理器" Height="800" Width="980"
+        WindowStartupLocation="CenterScreen" Background="#161623"
+        Foreground="#EAEAEA">
 
-    <!-- 局部资源与控制样式定义 (Vercel 风格) -->
+    <!-- 局部资源与全局控制样式定义 (暗黑磨砂玻璃风格) -->
     <Window.Resources>
-        <!-- 侧边栏按钮样式 -->
-        <Style x:Key="SidebarBtnStyle" TargetType="Button">
-            <Setter Property="Background" Value="Transparent"/>
-            <Setter Property="BorderThickness" Value="0"/>
-            <Setter Property="Foreground" Value="#666666"/>
-            <Setter Property="FontSize" Value="14"/>
-            <Setter Property="FontWeight" Value="Medium"/>
-            <Setter Property="Height" Value="40"/>
-            <Setter Property="HorizontalContentAlignment" Value="Left"/>
-            <Setter Property="Padding" Value="16,0,0,0"/>
-            <Setter Property="Template">
+        <!-- 磨砂玻璃卡片样式 -->
+        <Style x:Key="GlassCard" TargetType="Border">
+            <Setter Property="Background">
                 <Setter.Value>
-                    <ControlTemplate TargetType="Button">
-                        <Border x:Name="border" Background="{TemplateBinding Background}" BorderThickness="2,0,0,0" BorderBrush="Transparent">
-                            <ContentPresenter HorizontalAlignment="Left" VerticalAlignment="Center" Margin="{TemplateBinding Padding}"/>
-                        </Border>
-                        <ControlTemplate.Triggers>
-                            <Trigger Property="IsMouseOver" Value="True">
-                                <Setter TargetName="border" Property="Background" Value="#F9F9F9"/>
-                                <Setter Property="Foreground" Value="#000000"/>
-                            </Trigger>
-                        </ControlTemplate.Triggers>
-                    </ControlTemplate>
+                    <SolidColorBrush Color="#222538" Opacity="0.85"/>
+                </Setter.Value>
+            </Setter>
+            <Setter Property="BorderBrush">
+                <Setter.Value>
+                    <SolidColorBrush Color="#3A3D52" Opacity="0.6"/>
+                </Setter.Value>
+            </Setter>
+            <Setter Property="BorderThickness" Value="1"/>
+            <Setter Property="CornerRadius" Value="8"/>
+            <Setter Property="Margin" Value="0,0,0,16"/>
+            <Setter Property="Padding" Value="16"/>
+            <Setter Property="Effect">
+                <Setter.Value>
+                    <DropShadowEffect BlurRadius="20" Color="#000000" Opacity="0.4" ShadowDepth="3"/>
                 </Setter.Value>
             </Setter>
         </Style>
 
-        <!-- 激活状态侧边栏按钮样式 -->
-        <Style x:Key="ActiveSidebarBtnStyle" TargetType="Button" BasedOn="{StaticResource SidebarBtnStyle}">
-            <Setter Property="Background" Value="#F9F9F9"/>
-            <Setter Property="Foreground" Value="#000000"/>
-            <Setter Property="FontWeight" Value="Bold"/>
-            <Setter Property="Template">
-                <Setter.Value>
-                    <ControlTemplate TargetType="Button">
-                        <Border x:Name="border" Background="{TemplateBinding Background}" BorderThickness="3,0,0,0" BorderBrush="#000000">
-                            <ContentPresenter HorizontalAlignment="Left" VerticalAlignment="Center" Margin="{TemplateBinding Padding}"/>
-                        </Border>
-                    </ControlTemplate>
-                </Setter.Value>
-            </Setter>
-        </Style>
-
-        <!-- Vercel 极简黑色按钮样式 -->
-        <Style x:Key="VercelBlackButton" TargetType="Button">
-            <Setter Property="Background" Value="#000000"/>
+        <!-- 玫红强调色按钮样式 -->
+        <Style x:Key="AccentButton" TargetType="Button">
+            <Setter Property="Background" Value="#E94560"/>
             <Setter Property="Foreground" Value="#FFFFFF"/>
             <Setter Property="BorderThickness" Value="0"/>
             <Setter Property="FontWeight" Value="SemiBold"/>
-            <Setter Property="Padding" Value="16,8,16,8"/>
+            <Setter Property="Padding" Value="20,10,20,10"/>
+            <Setter Property="Cursor" Value="Hand"/>
             <Setter Property="Template">
                 <Setter.Value>
                     <ControlTemplate TargetType="Button">
-                        <Border Background="{TemplateBinding Background}" CornerRadius="4">
-                            <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center" Margin="{TemplateBinding Padding}"/>
-                        </Border>
-                    </ControlTemplate>
-                </Setter.Value>
-            </Setter>
-        </Style>
-
-        <!-- Vercel 边框按钮样式 -->
-        <Style x:Key="VercelBorderButton" TargetType="Button">
-            <Setter Property="Background" Value="#FFFFFF"/>
-            <Setter Property="Foreground" Value="#000000"/>
-            <Setter Property="BorderBrush" Value="#EAEAEA"/>
-            <Setter Property="BorderThickness" Value="1"/>
-            <Setter Property="FontWeight" Value="Medium"/>
-            <Setter Property="Padding" Value="12,6,12,6"/>
-            <Setter Property="Template">
-                <Setter.Value>
-                    <ControlTemplate TargetType="Button">
-                        <Border Background="{TemplateBinding Background}" BorderBrush="{TemplateBinding BorderBrush}" BorderThickness="{TemplateBinding BorderThickness}" CornerRadius="4" x:Name="border">
-                            <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center" Margin="{TemplateBinding Padding}"/>
+                        <Border Background="{TemplateBinding Background}" CornerRadius="6" x:Name="border">
+                            <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center"/>
                         </Border>
                         <ControlTemplate.Triggers>
                             <Trigger Property="IsMouseOver" Value="True">
-                                <Setter TargetName="border" Property="Background" Value="#FAFAFA"/>
-                                <Setter TargetName="border" Property="BorderBrush" Value="#D1D1D1"/>
+                                <Setter TargetName="border" Property="Background" Value="#FF5A75"/>
+                            </Trigger>
+                            <Trigger Property="IsEnabled" Value="False">
+                                <Setter TargetName="border" Property="Background" Value="#555555"/>
+                                <Setter Property="Foreground" Value="#888888"/>
                             </Trigger>
                         </ControlTemplate.Triggers>
                     </ControlTemplate>
@@ -96,592 +62,454 @@
             </Setter>
         </Style>
 
-        <!-- 输入框样式 -->
-        <Style TargetType="TextBox">
-            <Setter Property="BorderBrush" Value="#EAEAEA"/>
-            <Setter Property="BorderThickness" Value="1"/>
-            <Setter Property="Padding" Value="8,6,8,6"/>
-            <Setter Property="VerticalAlignment" Value="Center"/>
-            <Setter Property="Template">
-                <Setter.Value>
-                    <ControlTemplate TargetType="TextBox">
-                        <Border x:Name="border" BorderBrush="{TemplateBinding BorderBrush}" BorderThickness="{TemplateBinding BorderThickness}" Background="#FFFFFF" CornerRadius="4">
-                            <ScrollViewer x:Name="PART_ContentHost" Focusable="false" HorizontalScrollBarVisibility="Hidden" VerticalScrollBarVisibility="Hidden"/>
-                        </Border>
-                        <ControlTemplate.Triggers>
-                            <Trigger Property="IsFocused" Value="True">
-                                <Setter TargetName="border" Property="BorderBrush" Value="#000000"/>
-                            </Trigger>
-                        </ControlTemplate.Triggers>
-                    </ControlTemplate>
-                </Setter.Value>
-            </Setter>
-        </Style>
-
-        <!-- 密码框样式 -->
-        <Style TargetType="PasswordBox">
-            <Setter Property="BorderBrush" Value="#EAEAEA"/>
-            <Setter Property="BorderThickness" Value="1"/>
-            <Setter Property="Padding" Value="8,6,8,6"/>
-            <Setter Property="VerticalAlignment" Value="Center"/>
-            <Setter Property="Template">
-                <Setter.Value>
-                    <ControlTemplate TargetType="PasswordBox">
-                        <Border x:Name="border" BorderBrush="{TemplateBinding BorderBrush}" BorderThickness="{TemplateBinding BorderThickness}" Background="#FFFFFF" CornerRadius="4">
-                            <ScrollViewer x:Name="PART_ContentHost" Focusable="false" HorizontalScrollBarVisibility="Hidden" VerticalScrollBarVisibility="Hidden"/>
-                        </Border>
-                        <ControlTemplate.Triggers>
-                            <Trigger Property="IsFocused" Value="True">
-                                <Setter TargetName="border" Property="BorderBrush" Value="#000000"/>
-                            </Trigger>
-                        </ControlTemplate.Triggers>
-                    </ControlTemplate>
-                </Setter.Value>
-            </Setter>
-        </Style>
-
-        <!-- 标签页关闭按钮样式 -->
-        <Style x:Key="TabCloseButtonStyle" TargetType="Button">
+        <!-- 辅按钮/边框按钮样式 -->
+        <Style x:Key="OutlineButton" TargetType="Button">
             <Setter Property="Background" Value="Transparent"/>
-            <Setter Property="BorderThickness" Value="0"/>
-            <Setter Property="Foreground" Value="#888888"/>
-            <Setter Property="FontSize" Value="14"/>
-            <Setter Property="FontWeight" Value="Bold"/>
+            <Setter Property="Foreground" Value="#EAEAEA"/>
+            <Setter Property="BorderBrush" Value="#4E5166"/>
+            <Setter Property="BorderThickness" Value="1"/>
+            <Setter Property="FontWeight" Value="Medium"/>
+            <Setter Property="Padding" Value="14,8,14,8"/>
             <Setter Property="Cursor" Value="Hand"/>
-            <Setter Property="Padding" Value="4,0,4,0"/>
             <Setter Property="Template">
                 <Setter.Value>
                     <ControlTemplate TargetType="Button">
-                        <Border Background="{TemplateBinding Background}" Padding="{TemplateBinding Padding}">
+                        <Border Background="{TemplateBinding Background}" BorderBrush="{TemplateBinding BorderBrush}" BorderThickness="{TemplateBinding BorderThickness}" CornerRadius="6" x:Name="border">
                             <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center"/>
                         </Border>
+                        <ControlTemplate.Triggers>
+                            <Trigger Property="IsMouseOver" Value="True">
+                                <Setter TargetName="border" Property="Background" Value="#3D4055"/>
+                                <Setter TargetName="border" Property="BorderBrush" Value="#6C708C"/>
+                            </Trigger>
+                            <Trigger Property="IsEnabled" Value="False">
+                                <Setter Property="Foreground" Value="#666666"/>
+                                <Setter TargetName="border" Property="BorderBrush" Value="#333333"/>
+                            </Trigger>
+                        </ControlTemplate.Triggers>
                     </ControlTemplate>
                 </Setter.Value>
             </Setter>
-            <Style.Triggers>
-                <DataTrigger Binding="{Binding IsSelected, RelativeSource={RelativeSource AncestorType=TabItem}}" Value="True">
-                    <Setter Property="Foreground" Value="#CCCCCC"/>
-                </DataTrigger>
-                <Trigger Property="IsMouseOver" Value="True">
-                    <Setter Property="Foreground" Value="#FF3366"/>
-                </Trigger>
-            </Style.Triggers>
+        </Style>
+
+        <!-- 暗色风格输入框 -->
+        <Style TargetType="TextBox">
+            <Setter Property="Background" Value="#171725"/>
+            <Setter Property="Foreground" Value="#EAEAEA"/>
+            <Setter Property="BorderBrush" Value="#3A3D52"/>
+            <Setter Property="BorderThickness" Value="1"/>
+            <Setter Property="Padding" Value="10,8,10,8"/>
+            <Setter Property="VerticalAlignment" Value="Center"/>
+            <Setter Property="CaretBrush" Value="#EAEAEA"/>
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="TextBox">
+                        <Border x:Name="border" BorderBrush="{TemplateBinding BorderBrush}" BorderThickness="{TemplateBinding BorderThickness}" Background="{TemplateBinding Background}" CornerRadius="5">
+                            <ScrollViewer x:Name="PART_ContentHost" Focusable="false" HorizontalScrollBarVisibility="Hidden" VerticalScrollBarVisibility="Hidden"/>
+                        </Border>
+                        <ControlTemplate.Triggers>
+                            <Trigger Property="IsFocused" Value="True">
+                                <Setter TargetName="border" Property="BorderBrush" Value="#E94560"/>
+                            </Trigger>
+                        </ControlTemplate.Triggers>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
+
+        <!-- 暗色风格密码框 -->
+        <Style TargetType="PasswordBox">
+            <Setter Property="Background" Value="#171725"/>
+            <Setter Property="Foreground" Value="#EAEAEA"/>
+            <Setter Property="BorderBrush" Value="#3A3D52"/>
+            <Setter Property="BorderThickness" Value="1"/>
+            <Setter Property="Padding" Value="10,8,10,8"/>
+            <Setter Property="VerticalAlignment" Value="Center"/>
+            <Setter Property="CaretBrush" Value="#EAEAEA"/>
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="PasswordBox">
+                        <Border x:Name="border" BorderBrush="{TemplateBinding BorderBrush}" BorderThickness="{TemplateBinding BorderThickness}" Background="{TemplateBinding Background}" CornerRadius="5">
+                            <ScrollViewer x:Name="PART_ContentHost" Focusable="false" HorizontalScrollBarVisibility="Hidden" VerticalScrollBarVisibility="Hidden"/>
+                        </Border>
+                        <ControlTemplate.Triggers>
+                            <Trigger Property="IsFocused" Value="True">
+                                <Setter TargetName="border" Property="BorderBrush" Value="#E94560"/>
+                            </Trigger>
+                        </ControlTemplate.Triggers>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
+
+        <!-- 自定义下拉框样式 -->
+        <Style TargetType="ComboBox">
+            <Setter Property="Background" Value="#171725"/>
+            <Setter Property="Foreground" Value="#EAEAEA"/>
+            <Setter Property="BorderBrush" Value="#3A3D52"/>
+            <Setter Property="BorderThickness" Value="1"/>
+            <Setter Property="Padding" Value="8,6,8,6"/>
+            <Setter Property="HorizontalContentAlignment" Value="Left"/>
+            <Setter Property="VerticalContentAlignment" Value="Center"/>
+        </Style>
+
+        <!-- CheckBox 样式 -->
+        <Style TargetType="CheckBox">
+            <Setter Property="Foreground" Value="#EAEAEA"/>
+            <Setter Property="VerticalContentAlignment" Value="Center"/>
+            <Setter Property="Margin" Value="0,0,16,10"/>
+            <Setter Property="Cursor" Value="Hand"/>
         </Style>
     </Window.Resources>
 
     <Grid>
-        <Grid.ColumnDefinitions>
-            <!-- 左侧导航栏 -->
-            <ColumnDefinition Width="240"/>
-            <!-- 右侧主体内容 -->
-            <ColumnDefinition Width="*"/>
-        </Grid.ColumnDefinitions>
+        <Grid.RowDefinitions>
+            <!-- 权限警告横幅 -->
+            <RowDefinition Height="Auto"/>
+            <!-- 顶部标题 -->
+            <RowDefinition Height="64"/>
+            <!-- 主体内容 -->
+            <RowDefinition Height="*"/>
+        </Grid.RowDefinitions>
 
-        <!-- ======================= 左侧导航栏 ======================= -->
-        <Border Grid.Column="0" Background="#FFFFFF" BorderBrush="#EAEAEA" BorderThickness="0,0,1,0">
-            <Grid>
-                <Grid.RowDefinitions>
-                    <RowDefinition Height="64"/>
-                    <RowDefinition Height="*"/>
-                    <RowDefinition Height="50"/>
-                </Grid.RowDefinitions>
+        <!-- ======================= 权限警告横幅 ======================= -->
+        <Border x:Name="AdminWarningBanner" Grid.Row="0" Background="#E94560" Padding="12,8,12,8" Visibility="Collapsed">
+            <StackPanel Orientation="Horizontal" HorizontalAlignment="Center">
+                <TextBlock Text="⚠" FontSize="16" FontWeight="Bold" Foreground="#FFFFFF" Margin="0,0,8,0"/>
+                <TextBlock Text="当前未以管理员身份运行！部分高级保活（如 tscon 会话劫持）和补丁修改操作将无法生效，请使用管理员权限重新运行。" Foreground="#FFFFFF" VerticalAlignment="Center" FontWeight="Medium"/>
+            </StackPanel>
+        </Border>
 
-                <!-- 软件标题 -->
-                <StackPanel Grid.Row="0" Orientation="Horizontal" VerticalAlignment="Center" Margin="20,0,0,0">
-                    <TextBlock Text="RDP Manager" FontSize="18" FontWeight="Bold" Foreground="#000000" VerticalAlignment="Center"/>
-                    <Border Background="#FAFAFA" BorderBrush="#EAEAEA" BorderThickness="1" CornerRadius="4" Margin="8,0,0,0" Padding="4,2,4,2">
-                        <TextBlock Text="RPA" FontSize="10" FontWeight="Bold" Foreground="#666666"/>
+        <!-- ======================= 顶部标题 ======================= -->
+        <Border Grid.Row="1" Background="#1B1B2F" BorderBrush="#2A2A3D" BorderThickness="0,0,0,1">
+            <Grid Margin="20,0,20,0">
+                <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
+                    <TextBlock Text="LocalRDP" FontSize="20" FontWeight="Bold" Foreground="#EAEAEA" VerticalAlignment="Center"/>
+                    <Border Background="#E94560" CornerRadius="4" Margin="10,0,0,0" Padding="6,2,6,2" VerticalAlignment="Center">
+                        <TextBlock Text="RPA 保活版" FontSize="10" FontWeight="Bold" Foreground="#FFFFFF"/>
                     </Border>
+                    <TextBlock Text="— 隔离多用户与桌面持久化环境守护" FontSize="13" Foreground="#888CAA" Margin="10,0,0,0" VerticalAlignment="Center"/>
                 </StackPanel>
 
-                <!-- 导航菜单 -->
-                <StackPanel Grid.Row="1" Margin="0,10,0,0">
-                    <Button x:Name="NavDashboardBtn" Content="仪表盘" Style="{StaticResource ActiveSidebarBtnStyle}" Click="Nav_Click"/>
-                    <Button x:Name="NavAccountsBtn" Content="账号管理" Style="{StaticResource SidebarBtnStyle}" Click="Nav_Click" Margin="0,4,0,0"/>
-                    <Button x:Name="NavSettingsBtn" Content="系统设置" Style="{StaticResource SidebarBtnStyle}" Click="Nav_Click" Margin="0,4,0,0"/>
+                <!-- 系统状态指示器 -->
+                <StackPanel Orientation="Horizontal" HorizontalAlignment="Right" VerticalAlignment="Center">
+                    <Ellipse x:Name="StatusDot" Width="10" Height="10" Fill="#888CAA" Margin="0,0,8,0"/>
+                    <TextBlock x:Name="StatusTxt" Text="并发系统状态查询中..." Foreground="#888CAA" FontSize="13" VerticalAlignment="Center"/>
                 </StackPanel>
-
-                <!-- 底部服务状态指示 -->
-                <Border Grid.Row="2" BorderBrush="#EAEAEA" BorderThickness="0,1,0,0" Padding="20,0,0,0">
-                    <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
-                        <Ellipse x:Name="StatusDot" Width="8" Height="8" Fill="#0070F3" VerticalAlignment="Center"/>
-                        <TextBlock x:Name="StatusTxt" Text="并发会话已激活(TermWrap)" FontSize="11" Foreground="#666666" Margin="8,0,0,0" VerticalAlignment="Center"/>
-                    </StackPanel>
-                </Border>
             </Grid>
         </Border>
 
-        <!-- ======================= 右侧主体内容 ======================= -->
-        <Grid Grid.Column="1" Background="#FAF9F9">
-            
-            <!-- 视图 1: 多标签会话容器 (TabControl) -->
-            <Grid x:Name="ViewWorkspaces">
-                <Grid.RowDefinitions>
-                    <!-- 顶部 Tab 栏与操作 -->
-                    <RowDefinition Height="48"/>
-                    <!-- 主体桌面显示 -->
-                    <RowDefinition Height="*"/>
-                </Grid.RowDefinitions>
+        <!-- ======================= 主体内容 ======================= -->
+        <ScrollViewer Grid.Row="2" VerticalScrollBarVisibility="Auto" Margin="20">
+            <StackPanel>
 
-                <!-- 顶部标签栏 -->
-                <Border Grid.Row="0" Background="#FFFFFF" BorderBrush="#EAEAEA" BorderThickness="0,0,0,1">
-                    <Grid>
-                        <Grid.ColumnDefinitions>
-                            <ColumnDefinition Width="*"/>
-                            <ColumnDefinition Width="Auto"/>
-                        </Grid.ColumnDefinitions>
-
-                        <!-- Tab 页标题区域 -->
-                        <TabControl x:Name="WorkspaceTabs" Grid.Column="0" BorderThickness="0" Background="Transparent" 
-                                    SelectionChanged="WorkspaceTabs_SelectionChanged">
-                            <TabControl.Resources>
-                                <!-- 隐藏 TabControl 的默认框与多余背景 -->
-                                <Style TargetType="TabPanel">
-                                    <Setter Property="VerticalAlignment" Value="Bottom"/>
-                                    <Setter Property="Margin" Value="16,0,0,0"/>
-                                </Style>
-
-                                <!-- 极简 Vercel 按钮式 TabItem 样式 -->
-                                <Style TargetType="TabItem">
-                                    <Setter Property="Padding" Value="14,8,14,8"/>
-                                    <Setter Property="Margin" Value="0,0,8,0"/>
-                                    <Setter Property="Background" Value="#FFFFFF"/>
-                                    <Setter Property="Foreground" Value="#666666"/>
-                                    <Setter Property="BorderBrush" Value="#EAEAEA"/>
-                                    <Setter Property="BorderThickness" Value="1"/>
-                                    <Setter Property="FontSize" Value="13"/>
-                                    <Setter Property="FontWeight" Value="Medium"/>
-                                    <Setter Property="Template">
-                                        <Setter.Value>
-                                            <ControlTemplate TargetType="TabItem">
-                                                <Border x:Name="border" 
-                                                        Background="{TemplateBinding Background}" 
-                                                        BorderBrush="{TemplateBinding BorderBrush}" 
-                                                        BorderThickness="{TemplateBinding BorderThickness}" 
-                                                        CornerRadius="4" 
-                                                        Padding="{TemplateBinding Padding}"
-                                                        Margin="{TemplateBinding Margin}"
-                                                        SnapsToDevicePixels="True">
-                                                    <ContentPresenter x:Name="contentPresenter" 
-                                                                      ContentSource="Header" 
-                                                                      HorizontalAlignment="Center" 
-                                                                      VerticalAlignment="Center"
-                                                                      RecognizesAccessKey="True"/>
-                                                </Border>
-                                                <ControlTemplate.Triggers>
-                                                    <Trigger Property="IsSelected" Value="True">
-                                                        <Setter Property="Background" Value="#000000"/>
-                                                        <Setter Property="Foreground" Value="#FFFFFF"/>
-                                                        <Setter Property="BorderBrush" Value="#000000"/>
-                                                    </Trigger>
-                                                    <MultiTrigger>
-                                                        <MultiTrigger.Conditions>
-                                                            <Condition Property="IsMouseOver" Value="True"/>
-                                                            <Condition Property="IsSelected" Value="False"/>
-                                                        </MultiTrigger.Conditions>
-                                                        <Setter TargetName="border" Property="Background" Value="#FAFAFA"/>
-                                                        <Setter Property="Foreground" Value="#000000"/>
-                                                        <Setter TargetName="border" Property="BorderBrush" Value="#D1D1D1"/>
-                                                    </MultiTrigger>
-                                                </ControlTemplate.Triggers>
-                                            </ControlTemplate>
-                                        </Setter.Value>
-                                    </Setter>
-                                </Style>
-                            </TabControl.Resources>
-                        </TabControl>
-
-                        <!-- 右侧 新建连接 按钮 -->
-                        <Button Grid.Column="1" Content="+ 新建连接" Style="{StaticResource VercelBlackButton}" 
-                                VerticalAlignment="Center" Margin="0,0,16,0" Click="OpenNewConnection_Click"/>
-                    </Grid>
-                </Border>
-
-                <!-- 会话主体显示区 -->
-                <Grid Grid.Row="1">
-                    <!-- 网格仪表盘视图 (默认选中的 Tab) -->
-                    <Grid x:Name="DashboardGridView" Background="#FAF9F9" Margin="32">
-                        <Grid.RowDefinitions>
-                            <RowDefinition Height="Auto"/>
-                            <RowDefinition Height="*"/>
-                        </Grid.RowDefinitions>
-                        
-                        <TextBlock Grid.Row="0" Text="已连接设备" FontSize="20" FontWeight="Bold" Foreground="#000000" Margin="0,0,0,16"/>
-
-                        <!-- 连接卡片网格列表 -->
-                        <ScrollViewer Grid.Row="1" VerticalScrollBarVisibility="Auto">
-                            <ItemsControl x:Name="ConnectionCardsControl">
-                                <ItemsControl.ItemsPanel>
-                                    <ItemsPanelTemplate>
-                                        <UniformGrid Columns="2" VerticalAlignment="Top"/>
-                                    </ItemsPanelTemplate>
-                                </ItemsControl.ItemsPanel>
-                                <ItemsControl.ItemTemplate>
-                                    <DataTemplate>
-                                        <Border BorderBrush="#EAEAEA" BorderThickness="1" Background="#FFFFFF" CornerRadius="8" Margin="8" Padding="16">
-                                            <Grid>
-                                                <Grid.RowDefinitions>
-                                                    <RowDefinition Height="Auto"/>
-                                                    <RowDefinition Height="180"/>
-                                                    <RowDefinition Height="Auto"/>
-                                                </Grid.RowDefinitions>
-
-                                                <!-- 卡片头部信息 -->
-                                                <Grid Grid.Row="0" Margin="0,0,0,12">
-                                                    <StackPanel Orientation="Horizontal" HorizontalAlignment="Left">
-                                                        <TextBlock Text="{Binding FriendlyName}" FontSize="15" FontWeight="Bold" Foreground="#000000"/>
-                                                        <TextBlock Text="{Binding Server}" FontSize="12" Foreground="#666666" Margin="8,0,0,0" VerticalAlignment="Center"/>
-                                                    </StackPanel>
-                                                    <Border HorizontalAlignment="Right" Background="#FAFAFA" BorderBrush="#EAEAEA" BorderThickness="1" CornerRadius="12" Padding="8,2,8,2">
-                                                        <StackPanel Orientation="Horizontal">
-                                                            <Ellipse Width="6" Height="6" Fill="{Binding StatusBrush}" VerticalAlignment="Center"/>
-                                                            <TextBlock Text="{Binding StatusText}" FontSize="11" Foreground="#666666" Margin="6,0,0,0" VerticalAlignment="Center"/>
-                                                        </StackPanel>
-                                                    </Border>
-                                                </Grid>
-
-                                                <!-- 远程画面缩略图 -->
-                                                <Border Grid.Row="1" Background="#FAFAFA" BorderBrush="#EAEAEA" BorderThickness="1" CornerRadius="4" ClipToBounds="True">
-                                                    <Grid>
-                                                        <!-- 若有截图则显示 -->
-                                                        <Image Source="{Binding Thumbnail}" Stretch="Uniform" />
-                                                        <!-- 若无连接或离线状态显示占位 -->
-                                                        <TextBlock Text="未建立画面连接" Foreground="#888888" FontSize="13" 
-                                                                   HorizontalAlignment="Center" VerticalAlignment="Center"
-                                                                   Visibility="{Binding PlaceholderVisibility}"/>
-                                                    </Grid>
-                                                </Border>
-
-                                                <!-- 卡片底部操作栏 -->
-                                                <Grid Grid.Row="2" Margin="0,12,0,0">
-                                                      <Grid.ColumnDefinitions>
-                                                          <ColumnDefinition Width="*"/>
-                                                          <ColumnDefinition Width="Auto"/>
-                                                      </Grid.ColumnDefinitions>
-                                                      <StackPanel Orientation="Horizontal" Grid.Column="0">
-                                                          <Button Content="打开" Style="{StaticResource VercelBlackButton}"
-                                                                  Tag="{Binding Id}" Click="OpenSessionTab_Click" Margin="0,0,8,0"/>
-                                                          <StackPanel Orientation="Horizontal" Visibility="{Binding ActiveActionsVisibility}">
-                                                              <Button Content="断开保活" Style="{StaticResource VercelBorderButton}" Margin="0,0,8,0"
-                                                                      Tag="{Binding Id}" Click="KeepAliveDisconnect_Click"/>
-                                                              <Button Content="彻底断开" Style="{StaticResource VercelBorderButton}" Margin="0,0,8,0"
-                                                                      Foreground="#FF3366" BorderBrush="#FFCCD5"
-                                                                      Tag="{Binding Id}" Click="FullDisconnect_Click"/>
-                                                          </StackPanel>
-                                                      </StackPanel>
-                                                      
-                                                      <Button Grid.Column="1" Content="⋮" Style="{StaticResource VercelBorderButton}" Padding="8,0" FontSize="16" FontWeight="Bold" Background="Transparent" BorderThickness="0"
-                                                              HorizontalAlignment="Right" Tag="{Binding Id}">
-                                                          <Button.ContextMenu>
-                                                              <ContextMenu>
-                                                                  <MenuItem Header="删除" Tag="{Binding PlacementTarget.Tag, RelativeSource={RelativeSource AncestorType=ContextMenu}}" Click="DeleteConnection_Click" Foreground="#FF3366"/>
-                                                                  <MenuItem Header="设置" Tag="{Binding PlacementTarget.Tag, RelativeSource={RelativeSource AncestorType=ContextMenu}}" Click="EditConnection_Click"/>
-                                                              </ContextMenu>
-                                                          </Button.ContextMenu>
-                                                          <!-- Click event dynamically opens ContextMenu -->
-                                                          <Button.Triggers>
-                                                              <EventTrigger RoutedEvent="Button.Click">
-                                                                  <BeginStoryboard>
-                                                                      <Storyboard>
-                                                                          <BooleanAnimationUsingKeyFrames Storyboard.TargetProperty="ContextMenu.IsOpen">
-                                                                              <DiscreteBooleanKeyFrame KeyTime="0:0:0" Value="True"/>
-                                                                          </BooleanAnimationUsingKeyFrames>
-                                                                      </Storyboard>
-                                                                  </BeginStoryboard>
-                                                              </EventTrigger>
-                                                          </Button.Triggers>
-                                                      </Button>
-                                                 </Grid>
-                                            </Grid>
-                                        </Border>
-                                    </DataTemplate>
-                                </ItemsControl.ItemTemplate>
-                            </ItemsControl>
-                        </ScrollViewer>
-                    </Grid>
-                    
-                    <!-- 动态承载打开的 RDP 页面 (通过代码后台动态添加控件) -->
-                    <Grid x:Name="ActiveRdpContainer" Visibility="Collapsed" />
-                </Grid>
-            </Grid>
-
-            <!-- 视图 2: 账号管理面板 -->
-            <Grid x:Name="ViewAccounts" Visibility="Collapsed" Margin="32">
-                <Grid.RowDefinitions>
-                    <RowDefinition Height="Auto"/>
-                    <RowDefinition Height="Auto"/>
-                    <RowDefinition Height="*"/>
-                </Grid.RowDefinitions>
-
-                <TextBlock Grid.Row="0" Text="隔离账户管理" FontSize="20" FontWeight="Bold" Foreground="#000000" Margin="0,0,0,24"/>
-
-                <!-- 快速创建账号卡片 -->
-                <Border Grid.Row="1" BorderBrush="#EAEAEA" BorderThickness="1" Background="#FFFFFF" CornerRadius="8" Padding="24" Margin="0,0,0,24">
+                <!-- 模块 1 — 并发补丁管理 (TermWrap) -->
+                <Border Style="{StaticResource GlassCard}">
                     <StackPanel>
-                        <TextBlock Text="快速添加本地机器人账号" FontSize="16" FontWeight="Bold" Margin="0,0,0,16"/>
-                        <Grid>
+                        <!-- Header -->
+                        <Grid MouseLeftButtonUp="ToggleModule_Click" Tag="Module1Content" Cursor="Hand" Background="Transparent">
                             <Grid.ColumnDefinitions>
-                                <ColumnDefinition Width="*"/>
+                                <ColumnDefinition Width="Auto"/>
                                 <ColumnDefinition Width="*"/>
                                 <ColumnDefinition Width="Auto"/>
                             </Grid.ColumnDefinitions>
-                            
-                            <StackPanel Grid.Column="0" Margin="0,0,16,0">
-                                <TextBlock Text="账号名称" FontSize="12" Foreground="#666666" Margin="0,0,0,6"/>
-                                <TextBox x:Name="NewUserTxt" Height="36"/>
-                            </StackPanel>
-
-                            <StackPanel Grid.Column="1" Margin="0,0,16,0">
-                                <TextBlock Text="密码" FontSize="12" Foreground="#666666" Margin="0,0,0,6"/>
-                                <PasswordBox x:Name="NewPassTxt" Height="36"/>
-                            </StackPanel>
-
-                            <Button Grid.Column="2" Content="+ 一键创建并分配管理员权限" Style="{StaticResource VercelBlackButton}" 
-                                    Height="36" VerticalAlignment="Bottom" Click="CreateAccount_Click"/>
+                            <TextBlock Text="🛡" FontSize="16" Foreground="#E94560" VerticalAlignment="Center" Margin="0,0,8,0"/>
+                            <TextBlock Grid.Column="1" Text="并发补丁管理 (TermWrap)" FontSize="15" FontWeight="Bold" Foreground="#EAEAEA" VerticalAlignment="Center"/>
+                            <TextBlock x:Name="Module1Arrow" Grid.Column="2" Text="▽" FontSize="14" Foreground="#888CAA" VerticalAlignment="Center"/>
                         </Grid>
+
+                        <!-- Content -->
+                        <Border x:Name="Module1Content" Visibility="Collapsed" Margin="0,12,0,0" BorderBrush="#2E3047" BorderThickness="0,1,0,0" Padding="0,12,0,0">
+                            <StackPanel>
+                                <Grid Margin="0,0,0,16">
+                                    <Grid.ColumnDefinitions>
+                                        <ColumnDefinition Width="Auto"/>
+                                        <ColumnDefinition Width="*"/>
+                                    </Grid.ColumnDefinitions>
+                                    <StackPanel Grid.Column="0">
+                                        <TextBlock Text="多路并发组件 (TermWrap) 状态:" Foreground="#888CAA" Margin="0,0,0,4"/>
+                                        <TextBlock x:Name="TermWrapStatusTxt" Text="查询中..." FontSize="14" FontWeight="SemiBold" Foreground="#EAEAEA"/>
+                                    </StackPanel>
+                                    <TextBlock Grid.Column="1" Text="提示: 远程并发补丁通过注册表劫持和底层 Hook 技术，解除 Windows 仅支持单会话 RDP 的限制，使得多个 RPA 机器人能够独立、并行登录不同的账号。" Foreground="#888CAA" TextWrapping="Wrap" FontSize="12" Margin="30,0,0,0" VerticalAlignment="Center"/>
+                                </Grid>
+                                <StackPanel Orientation="Horizontal">
+                                    <Button x:Name="DeployPatchBtn" Content="安装/修复并发补丁" Style="{StaticResource OutlineButton}" Click="DeployPatch_Click" Margin="0,0,12,0"/>
+                                    <Button x:Name="UninstallPatchBtn" Content="还原系统默认配置" Style="{StaticResource OutlineButton}" Click="UninstallPatch_Click"/>
+                                </StackPanel>
+                            </StackPanel>
+                        </Border>
                     </StackPanel>
                 </Border>
 
-                <!-- 本地隔离账户列表 -->
-                <Border Grid.Row="2" BorderBrush="#EAEAEA" BorderThickness="1" Background="#FFFFFF" CornerRadius="8" Padding="24">
-                    <Grid>
-                        <Grid.RowDefinitions>
-                            <RowDefinition Height="Auto"/>
-                            <RowDefinition Height="*"/>
-                        </Grid.RowDefinitions>
-                        <TextBlock Grid.Row="0" Text="本地隔离账户列表" FontSize="16" FontWeight="Bold" Margin="0,0,0,16"/>
-                        
-                        <DataGrid Grid.Row="1" x:Name="AccountsDataGrid" AutoGenerateColumns="False" 
-                                  CanUserAddRows="False" GridLinesVisibility="Horizontal" HeadersVisibility="Column" 
-                                  Background="Transparent" BorderThickness="0" RowHeaderWidth="0">
-                            <DataGrid.Resources>
-                                <Style TargetType="DataGridColumnHeader">
-                                    <Setter Property="Background" Value="Transparent"/>
-                                    <Setter Property="Foreground" Value="#666666"/>
-                                    <Setter Property="FontWeight" Value="SemiBold"/>
-                                    <Setter Property="Padding" Value="10"/>
-                                    <Setter Property="BorderThickness" Value="0,0,0,1"/>
-                                    <Setter Property="BorderBrush" Value="#EAEAEA"/>
-                                </Style>
-                                <Style TargetType="DataGridCell">
-                                    <Setter Property="Padding" Value="10"/>
-                                    <Setter Property="BorderThickness" Value="0"/>
-                                    <Setter Property="Template">
-                                        <Setter.Value>
-                                            <ControlTemplate TargetType="DataGridCell">
-                                                <Border Padding="{TemplateBinding Padding}" Background="{TemplateBinding Background}">
-                                                    <ContentPresenter VerticalAlignment="Center"/>
-                                                </Border>
-                                            </ControlTemplate>
-                                        </Setter.Value>
-                                    </Setter>
-                                </Style>
-                            </DataGrid.Resources>
-                            <DataGrid.Columns>
-                                <DataGridTextColumn Header="账户名" Binding="{Binding Name}" Width="150" IsReadOnly="True"/>
-                                <DataGridTextColumn Header="账户类型" Binding="{Binding Type}" Width="150" IsReadOnly="True"/>
-                                <DataGridTextColumn Header="密码期限" Binding="{Binding PasswordExpires}" Width="150" IsReadOnly="True"/>
-                                <DataGridTemplateColumn Header="操作" Width="*">
-                                    <DataGridTemplateColumn.CellTemplate>
-                                        <DataTemplate>
-                                            <StackPanel Orientation="Horizontal">
-                                                <Button Content="删除账号" Style="{StaticResource VercelBorderButton}" Padding="8,4,8,4" Tag="{Binding Name}" Click="DeleteAccount_Click"/>
-                                            </StackPanel>
-                                        </DataTemplate>
-                                    </DataGridTemplateColumn.CellTemplate>
-                                </DataGridTemplateColumn>
-                            </DataGrid.Columns>
-                        </DataGrid>
-                    </Grid>
-                </Border>
-            </Grid>
-
-            <!-- 视图 3: 系统设置面板 -->
-            <Grid x:Name="ViewSettings" Visibility="Collapsed" Margin="32">
-                <Grid.RowDefinitions>
-                    <RowDefinition Height="Auto"/>
-                    <RowDefinition Height="*"/>
-                </Grid.RowDefinitions>
-
-                <TextBlock Grid.Row="0" Text="系统设置" FontSize="20" FontWeight="Bold" Foreground="#000000" Margin="0,0,0,24"/>
-
-                <ScrollViewer Grid.Row="1" VerticalScrollBarVisibility="Auto">
+                <!-- 模块 2 — 系统账号设置 -->
+                <Border Style="{StaticResource GlassCard}">
                     <StackPanel>
-                        <!-- TermWrap 补丁配置 -->
-                        <Border BorderBrush="#EAEAEA" BorderThickness="1" Background="#FFFFFF" CornerRadius="8" Padding="24" Margin="0,0,0,24">
+                        <!-- Header -->
+                        <Grid MouseLeftButtonUp="ToggleModule_Click" Tag="Module2Content" Cursor="Hand" Background="Transparent">
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="Auto"/>
+                                <ColumnDefinition Width="*"/>
+                                <ColumnDefinition Width="Auto"/>
+                            </Grid.ColumnDefinitions>
+                            <TextBlock Text="👤" FontSize="16" Foreground="#E94560" VerticalAlignment="Center" Margin="0,0,8,0"/>
+                            <TextBlock Grid.Column="1" Text="系统隔离账号管理" FontSize="15" FontWeight="Bold" Foreground="#EAEAEA" VerticalAlignment="Center"/>
+                            <TextBlock x:Name="Module2Arrow" Grid.Column="2" Text="▲" FontSize="14" Foreground="#888CAA" VerticalAlignment="Center"/>
+                        </Grid>
+
+                        <!-- Content -->
+                        <Border x:Name="Module2Content" Visibility="Visible" Margin="0,12,0,0" BorderBrush="#2E3047" BorderThickness="0,1,0,0" Padding="0,12,0,0">
                             <Grid>
                                 <Grid.ColumnDefinitions>
-                                    <ColumnDefinition Width="*"/>
-                                    <ColumnDefinition Width="Auto"/>
+                                    <ColumnDefinition Width="4*"/>
+                                    <ColumnDefinition Width="10"/>
+                                    <ColumnDefinition Width="5*"/>
                                 </Grid.ColumnDefinitions>
+
+                                <!-- 左侧：新建用户 -->
                                 <StackPanel Grid.Column="0">
-                                    <TextBlock Text="多会话并发环境配置 (TermWrap)" FontSize="16" FontWeight="Bold" Margin="0,0,0,8"/>
-                                    <StackPanel Orientation="Horizontal" Margin="0,0,0,4">
-                                        <TextBlock Text="当前状态: " Foreground="#666666" FontSize="13"/>
-                                        <TextBlock x:Name="TermWrapStatusTxt" Text="检测中..." FontWeight="Bold" FontSize="13"/>
-                                    </StackPanel>
-                                    <TextBlock Text="该功能允许 Windows 系统支持多个本地账户同时连接登录并操作，且系统更新后如果失效，可随时在此页一键检测并修复。" 
-                                               Foreground="#888888" FontSize="12" TextWrapping="Wrap" Margin="0,4,0,0"/>
+                                    <TextBlock Text="新建隔离账号" FontSize="13" FontWeight="Bold" Foreground="#E94560" Margin="0,0,0,10"/>
+                                    <TextBlock Text="账号名称:" Foreground="#888CAA" Margin="0,0,0,4" FontSize="12"/>
+                                    <TextBox x:Name="NewUserTxt" Margin="0,0,0,10" Height="34"/>
+                                    <TextBlock Text="账号密码:" Foreground="#888CAA" Margin="0,0,0,4" FontSize="12"/>
+                                    <PasswordBox x:Name="NewPassTxt" Margin="0,0,0,16" Height="34"/>
+                                    <Button x:Name="CreateAccountBtn" Content="新建隔离用户" Style="{StaticResource AccentButton}" Click="CreateAccount_Click" HorizontalAlignment="Left"/>
                                 </StackPanel>
-                                <StackPanel Grid.Column="1" VerticalAlignment="Center" Orientation="Horizontal">
-                                    <Button x:Name="DeployPatchBtn" Content="激活/修复补丁" Style="{StaticResource VercelBlackButton}" Click="DeployPatch_Click"/>
-                                    <Button x:Name="UninstallPatchBtn" Content="卸载补丁" Style="{StaticResource VercelBorderButton}" Margin="12,0,0,0" Click="UninstallPatch_Click"/>
+
+                                <!-- 右侧：已有账户选择与凭证填写 -->
+                                <StackPanel Grid.Column="2">
+                                    <TextBlock Text="选择/编辑登录账户凭证" FontSize="13" FontWeight="Bold" Foreground="#E94560" Margin="0,0,0,10"/>
+                                    
+                                    <TextBlock Text="选择系统账号 (仅列出非系统内置账号):" Foreground="#888CAA" Margin="0,0,0,4" FontSize="12"/>
+                                    <Grid Margin="0,0,0,10">
+                                        <Grid.ColumnDefinitions>
+                                            <ColumnDefinition Width="*"/>
+                                            <ColumnDefinition Width="Auto"/>
+                                        </Grid.ColumnDefinitions>
+                                        <ComboBox x:Name="AccountCombo" Height="34" SelectionChanged="AccountCombo_SelectionChanged"/>
+                                        <Button x:Name="DeleteAccountBtn" Grid.Column="1" Content="🗑 删除账号" Style="{StaticResource OutlineButton}" BorderBrush="#E94560" Foreground="#E94560" Click="DeleteAccount_Click" Margin="10,0,0,0"/>
+                                    </Grid>
+
+                                    <TextBlock Text="填写凭证密码 (安全保存到 Windows 凭据管理器):" Foreground="#888CAA" Margin="0,0,0,4" FontSize="12"/>
+                                    <Grid>
+                                        <Grid.ColumnDefinitions>
+                                            <ColumnDefinition Width="*"/>
+                                            <ColumnDefinition Width="Auto"/>
+                                        </Grid.ColumnDefinitions>
+                                        <PasswordBox x:Name="SelectedAccountPasswordTxt" Height="34" PasswordChanged="SelectedAccountPasswordTxt_PasswordChanged"/>
+                                        <Button x:Name="SaveCredBtn" Grid.Column="1" Content="💾 保存密码" Style="{StaticResource OutlineButton}" Click="SaveCredBtn_Click" Margin="10,0,0,0" Height="34"/>
+                                    </Grid>
+                                    <TextBlock Text="* 选中账户后，会自动从凭据管理器填充已保存密码。若在此输入新密码，请点击 [保存密码] 按钮更新。" Foreground="#888CAA" FontSize="11" TextWrapping="Wrap" Margin="0,8,0,0"/>
                                 </StackPanel>
                             </Grid>
                         </Border>
+                    </StackPanel>
+                </Border>
 
-                        <!-- RPA 优化策略 -->
-                        <Border BorderBrush="#EAEAEA" BorderThickness="1" Background="#FFFFFF" CornerRadius="8" Padding="24" Margin="0,0,0,24">
-                            <StackPanel>
-                                <TextBlock Text="RPA 运行优化选项 (全局默认设置)" FontSize="16" FontWeight="Bold" Margin="0,0,0,16"/>
-                                <CheckBox x:Name="OptClipboardChk" Content="默认启用双向剪贴板（推荐，方便 RPA 数据交换）" IsChecked="True" Margin="0,0,0,12" FontSize="13"/>
-                                <CheckBox x:Name="OptSmartSizingChk" Content="默认启用分辨率自适应（开启后自动缩放桌面）" IsChecked="True" Margin="0,0,0,12" FontSize="13"/>
-                                <CheckBox x:Name="OptMuteChk" Content="默认启用静音运行（屏蔽 RDP 会话音频，可极大降低系统资源开销）" IsChecked="True" Margin="0,0,0,12" FontSize="13"/>
-                                <CheckBox x:Name="OptUsbChk" Content="默认允许 USB 和 PnP 设备重定向 (UmWrap 摄像头/U盾支持)" IsChecked="False" FontSize="13"/>
-                            </StackPanel>
-                        </Border>
+                <!-- 模块 3 — 高级保活及重定向 -->
+                <Border Style="{StaticResource GlassCard}">
+                    <StackPanel>
+                        <!-- Header -->
+                        <Grid MouseLeftButtonUp="ToggleModule_Click" Tag="Module3Content" Cursor="Hand" Background="Transparent">
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="Auto"/>
+                                <ColumnDefinition Width="*"/>
+                                <ColumnDefinition Width="Auto"/>
+                            </Grid.ColumnDefinitions>
+                            <TextBlock Text="⚙" FontSize="16" Foreground="#E94560" VerticalAlignment="Center" Margin="0,0,8,0"/>
+                            <TextBlock Grid.Column="1" Text="高级保活与重定向配置" FontSize="15" FontWeight="Bold" Foreground="#EAEAEA" VerticalAlignment="Center"/>
+                            <TextBlock x:Name="Module3Arrow" Grid.Column="2" Text="▲" FontSize="14" Foreground="#888CAA" VerticalAlignment="Center"/>
+                        </Grid>
 
-                        <!-- GitHub Actions 构建设置 -->
-                        <Border BorderBrush="#EAEAEA" BorderThickness="1" Background="#FFFFFF" CornerRadius="8" Padding="24">
+                        <!-- Content -->
+                        <Border x:Name="Module3Content" Visibility="Visible" Margin="0,12,0,0" BorderBrush="#2E3047" BorderThickness="0,1,0,0" Padding="0,12,0,0">
                             <StackPanel>
-                                <TextBlock Text="自动构建与更新配置" FontSize="16" FontWeight="Bold" Margin="0,0,0,16"/>
-                                <TextBlock Text="您已配置 GitHub Actions 工作流。当您将代码推送至 GitHub 后，工作流会自动生成 win-x64 的单文件绿色版 EXE。" 
-                                           Foreground="#888888" FontSize="12" Margin="0,0,0,12"/>
-                                <Grid>
+                                <!-- 第一行：分辨率与缩放 -->
+                                <Grid Margin="0,0,0,16">
                                     <Grid.ColumnDefinitions>
-                                        <ColumnDefinition Width="2*"/>
-                                        <ColumnDefinition Width="1*"/>
+                                        <ColumnDefinition Width="*"/>
+                                        <ColumnDefinition Width="20"/>
+                                        <ColumnDefinition Width="*"/>
                                     </Grid.ColumnDefinitions>
-                                    <StackPanel Grid.Column="0" Margin="0,0,16,0">
-                                        <TextBlock Text="GitHub 仓库推送地址" FontSize="12" Foreground="#666666" Margin="0,0,0,6"/>
-                                        <TextBox x:Name="GitRepoTxt" Text="https://github.com/your-username/rdpManager" Height="36"/>
+                                    <StackPanel Grid.Column="0">
+                                        <TextBlock Text="分辨率选择:" Foreground="#888CAA" Margin="0,0,0,6" FontSize="12"/>
+                                        <ComboBox x:Name="ResolutionCombo" SelectedIndex="5">
+                                            <ComboBoxItem Content="自适应物理大小" Tag="0x0"/>
+                                            <ComboBoxItem Content="800 × 600" Tag="800x600"/>
+                                            <ComboBoxItem Content="1024 × 768" Tag="1024x768"/>
+                                            <ComboBoxItem Content="1280 × 720" Tag="1280x720"/>
+                                            <ComboBoxItem Content="1440 × 900" Tag="1440x900"/>
+                                            <ComboBoxItem Content="1920 × 1080" Tag="1920x1080"/>
+                                        </ComboBox>
                                     </StackPanel>
-                                    <StackPanel Grid.Column="1">
-                                        <TextBlock Text="构建触发分支" FontSize="12" Foreground="#666666" Margin="0,0,0,6"/>
-                                        <TextBox x:Name="GitBranchTxt" Text="main" Height="36"/>
+                                    <StackPanel Grid.Column="2">
+                                        <TextBlock Text="画面缩放比例 (RDP 智能缩放):" Foreground="#888CAA" Margin="0,0,0,6" FontSize="12"/>
+                                        <ComboBox x:Name="ScaleCombo" SelectedIndex="0">
+                                            <ComboBoxItem Content="100%" Tag="100"/>
+                                            <ComboBoxItem Content="125%" Tag="125"/>
+                                            <ComboBoxItem Content="150%" Tag="150"/>
+                                            <ComboBoxItem Content="175%" Tag="175"/>
+                                            <ComboBoxItem Content="200%" Tag="200"/>
+                                        </ComboBox>
                                     </StackPanel>
                                 </Grid>
-                                <Button Content="保存构建配置" Style="{StaticResource VercelBlackButton}" HorizontalAlignment="Left" Margin="0,16,0,0"/>
+
+                                <!-- 第二行：外设重定向 -->
+                                <TextBlock Text="外设重定向策略:" Foreground="#888CAA" Margin="0,0,0,8" FontSize="12" FontWeight="Bold"/>
+                                <WrapPanel Margin="0,0,0,16">
+                                    <CheckBox x:Name="ClipboardChk" Content="同步双向剪贴板" IsChecked="True"/>
+                                    <CheckBox x:Name="AudioChk" Content="重定向音频播放" IsChecked="True"/>
+                                    <CheckBox x:Name="MicChk" Content="重定向麦克风输入" IsChecked="False"/>
+                                    <CheckBox x:Name="DrivesChk" Content="挂载共享本地磁盘" IsChecked="False"/>
+                                    <CheckBox x:Name="PrintersChk" Content="共享本地打印机" IsChecked="False"/>
+                                    <CheckBox x:Name="SmartSizingChk" Content="启动窗口大小自适应" IsChecked="True"/>
+                                </WrapPanel>
+
+                                <!-- 第三行：保活设置 -->
+                                <TextBlock Text="远程运行环境保活锁定（核心 RPA 支持）:" Foreground="#E94560" Margin="0,0,0,8" FontSize="12" FontWeight="Bold"/>
+                                <StackPanel Margin="0,0,0,20">
+                                    <CheckBox x:Name="AutoKeepAliveChk" Content="退出窗口时自动保活会话（不关闭后台运行，自动劫持控制台维持硬件桌面）" IsChecked="True"/>
+                                    <CheckBox x:Name="LockResolutionChk" Content="锁定强制恢复物理分辨率（防止控制台锁屏或尺寸畸变导致图像识别失效）" IsChecked="True"/>
+                                    <CheckBox x:Name="PreventSleepChk" Content="阻止主机睡眠、系统锁屏与休眠状态（维持屏幕常量）" IsChecked="True"/>
+                                </StackPanel>
+
+                                <!-- 连接按钮 -->
+                                <Button x:Name="ConnectBtn" Content="🚀 发起隔离 RDP 会话连接" Style="{StaticResource AccentButton}" Click="ConnectBtn_Click" FontSize="14" Height="40" HorizontalAlignment="Stretch"/>
                             </StackPanel>
                         </Border>
                     </StackPanel>
-                </ScrollViewer>
-            </Grid>
-        </Grid>
+                </Border>
 
-        <!-- ======================= 全局弹窗层 (新建连接模态框) ======================= -->
-        <Grid x:Name="NewConnectionOverlay" Grid.ColumnSpan="2" Background="#80000000" Visibility="Collapsed">
-            <Border Width="500" HorizontalAlignment="Center" VerticalAlignment="Center" 
-                    Background="#FFFFFF" BorderBrush="#EAEAEA" BorderThickness="1" CornerRadius="8" Padding="24">
-                <Border.Effect>
-                    <DropShadowEffect BlurRadius="30" Color="#000000" Opacity="0.12" ShadowDepth="8"/>
-                </Border.Effect>
-                
-                <StackPanel>
-                    <!-- 弹窗标题 -->
-                    <TextBlock Text="添加新远程桌面" FontSize="18" FontWeight="Bold" Foreground="#000000" Margin="0,0,0,20"/>
+                <!-- 模块 4 — 活跃会话管理 -->
+                <Border Style="{StaticResource GlassCard}">
+                    <StackPanel>
+                        <!-- Header -->
+                        <Grid MouseLeftButtonUp="ToggleModule_Click" Tag="Module4Content" Cursor="Hand" Background="Transparent">
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="Auto"/>
+                                <ColumnDefinition Width="*"/>
+                                <ColumnDefinition Width="Auto"/>
+                                <ColumnDefinition Width="Auto"/>
+                            </Grid.ColumnDefinitions>
+                            <TextBlock Text="📊" FontSize="16" Foreground="#E94560" VerticalAlignment="Center" Margin="0,0,8,0"/>
+                            <TextBlock Grid.Column="1" Text="活跃会话实时管理" FontSize="15" FontWeight="Bold" Foreground="#EAEAEA" VerticalAlignment="Center"/>
+                            
+                            <!-- 数量角标 -->
+                            <Border Grid.Column="2" Background="#E94560" CornerRadius="10" MinWidth="20" Height="20" Margin="0,0,15,0" Padding="6,0,6,0" VerticalAlignment="Center">
+                                <TextBlock x:Name="SessionCountBadge" Text="0" Foreground="#FFFFFF" FontSize="11" FontWeight="Bold" HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                            </Border>
 
-                    <!-- 表单字段 -->
-                    <StackPanel Margin="0,0,0,16">
-                        <TextBlock Text="电脑名称或本地账户" FontSize="12" Foreground="#666666" Margin="0,0,0,6"/>
-                        <!-- 提供快捷选择本地账户，也可手动输入 IP -->
-                        <ComboBox x:Name="TargetComputerCombo" Height="36" IsEditable="True"/>
+                            <TextBlock x:Name="Module4Arrow" Grid.Column="3" Text="▲" FontSize="14" Foreground="#888CAA" VerticalAlignment="Center"/>
+                        </Grid>
+
+                        <!-- Content -->
+                        <Border x:Name="Module4Content" Visibility="Visible" Margin="0,12,0,0" BorderBrush="#2E3047" BorderThickness="0,1,0,0" Padding="0,12,0,0">
+                            <StackPanel>
+                                <ListView x:Name="SessionsListView" Background="Transparent" BorderThickness="0" ScrollViewer.HorizontalScrollBarVisibility="Disabled" Foreground="#EAEAEA">
+                                    <ListView.ItemContainerStyle>
+                                        <Style TargetType="ListViewItem">
+                                            <Setter Property="Background" Value="Transparent"/>
+                                            <Setter Property="BorderThickness" Value="0,0,0,1"/>
+                                            <Setter Property="BorderBrush" Value="#2E3047"/>
+                                            <Setter Property="Padding" Value="8,10,8,10"/>
+                                            <Setter Property="HorizontalContentAlignment" Value="Stretch"/>
+                                            <Setter Property="Template">
+                                                <Setter.Value>
+                                                    <ControlTemplate TargetType="ListViewItem">
+                                                        <Border Background="{TemplateBinding Background}" BorderBrush="{TemplateBinding BorderBrush}" BorderThickness="{TemplateBinding BorderThickness}" Padding="{TemplateBinding Padding}">
+                                                            <ContentPresenter/>
+                                                        </Border>
+                                                    </ControlTemplate>
+                                                </Setter.Value>
+                                            </Setter>
+                                            <Style.Triggers>
+                                                <Trigger Property="IsMouseOver" Value="True">
+                                                    <Setter Property="Background" Value="#2A2A3D"/>
+                                                </Trigger>
+                                            </Style.Triggers>
+                                        </Style>
+                                    </ListView.ItemContainerStyle>
+
+                                    <!-- 右键菜单 -->
+                                    <ListView.ContextMenu>
+                                        <ContextMenu Background="#222538" Foreground="#EAEAEA">
+                                            <MenuItem Header="强制注销 (Logoff)" Click="LogoffSessionContext_Click"/>
+                                        </ContextMenu>
+                                    </ListView.ContextMenu>
+
+                                    <ListView.HeaderTemplate>
+                                        <DataTemplate>
+                                            <Grid Padding="8,4,8,4" Background="#1D1D2C">
+                                                <Grid.ColumnDefinitions>
+                                                    <ColumnDefinition Width="2*"/>
+                                                    <ColumnDefinition Width="1.5*"/>
+                                                    <ColumnDefinition Width="1.5*"/>
+                                                    <ColumnDefinition Width="2*"/>
+                                                    <ColumnDefinition Width="3*"/>
+                                                </Grid.ColumnDefinitions>
+                                                <TextBlock Grid.Column="0" Text="用户名" Foreground="#888CAA" FontWeight="Bold"/>
+                                                <TextBlock Grid.Column="1" Text="会话 ID" Foreground="#888CAA" FontWeight="Bold"/>
+                                                <TextBlock Grid.Column="2" Text="会话状态" Foreground="#888CAA" FontWeight="Bold"/>
+                                                <TextBlock Grid.Column="3" Text="分辨率" Foreground="#888CAA" FontWeight="Bold"/>
+                                                <TextBlock Grid.Column="4" Text="运行时长 / 操作" Foreground="#888CAA" FontWeight="Bold" HorizontalAlignment="Right"/>
+                                            </Grid>
+                                        </DataTemplate>
+                                    </ListView.HeaderTemplate>
+
+                                    <ListView.ItemTemplate>
+                                        <DataTemplate>
+                                            <Grid>
+                                                <Grid.ColumnDefinitions>
+                                                    <Grid.ColumnDefinition Width="2*"/>
+                                                    <Grid.ColumnDefinition Width="1.5*"/>
+                                                    <Grid.ColumnDefinition Width="1.5*"/>
+                                                    <Grid.ColumnDefinition Width="2*"/>
+                                                    <Grid.ColumnDefinition Width="3*"/>
+                                                </Grid.ColumnDefinitions>
+                                                
+                                                <!-- 用户名 -->
+                                                <TextBlock Grid.Column="0" Text="{Binding UserName}" VerticalAlignment="Center" FontWeight="SemiBold" FontSize="13" Foreground="#FFFFFF"/>
+                                                
+                                                <!-- 会话 ID -->
+                                                <TextBlock Grid.Column="1" Text="{Binding SessionId}" VerticalAlignment="Center" Foreground="#888CAA"/>
+                                                
+                                                <!-- 状态点与文本 -->
+                                                <StackPanel Grid.Column="2" Orientation="Horizontal" VerticalAlignment="Center">
+                                                    <Ellipse Width="8" Height="8" Fill="{Binding StateColor}" Margin="0,0,6,0"/>
+                                                    <TextBlock Text="{Binding StateText}" Foreground="{Binding StateColor}" VerticalAlignment="Center"/>
+                                                </StackPanel>
+
+                                                <!-- 分辨率 -->
+                                                <TextBlock Grid.Column="3" Text="{Binding DisplayResolution}" VerticalAlignment="Center" Foreground="#EAEAEA"/>
+
+                                                <!-- 运行时长与操作按钮 -->
+                                                <StackPanel Grid.Column="4" Orientation="Horizontal" HorizontalAlignment="Right">
+                                                    <TextBlock Text="{Binding RunningTimeText}" Foreground="#888CAA" VerticalAlignment="Center" Margin="0,0,15,0"/>
+                                                    <Button Content="打开" Style="{StaticResource OutlineButton}" Click="OpenSession_Click" Tag="{Binding}" Height="26" Padding="10,2,10,2" Margin="0,0,8,0" FontSize="11"/>
+                                                    <Button Content="断开" Style="{StaticResource OutlineButton}" Click="DisconnectSession_Click" Tag="{Binding SessionId}" Height="26" Padding="10,2,10,2" FontSize="11" BorderBrush="#E94560" Foreground="#E94560"/>
+                                                </StackPanel>
+                                            </Grid>
+                                        </DataTemplate>
+                                    </ListView.ItemTemplate>
+                                </ListView>
+
+                                <TextBlock x:Name="NoSessionsTip" Text="当前暂无活跃的 RPA 用户会话" Foreground="#888CAA" HorizontalAlignment="Center" Margin="0,20,0,20" Visibility="Collapsed"/>
+                            </StackPanel>
+                        </Border>
                     </StackPanel>
+                </Border>
 
-                    <StackPanel Margin="0,0,0,16">
-                        <TextBlock Text="密码" FontSize="12" Foreground="#666666" Margin="0,0,0,6"/>
-                        <PasswordBox x:Name="TargetPasswordBox" Height="36"/>
-                    </StackPanel>
+            </StackPanel>
+        </ScrollViewer>
 
-                    <StackPanel Margin="0,0,0,20">
-                        <TextBlock Text="友好名称 (显示昵称)" FontSize="12" Foreground="#666666" Margin="0,0,0,6"/>
-                        <TextBox x:Name="FriendlyNameTxt" Height="36" />
-                    </StackPanel>
-
-                    <!-- 分辨率与缩放比设置 -->
-                    <Grid Margin="0,0,0,20">
-                        <Grid.ColumnDefinitions>
-                            <ColumnDefinition Width="*"/>
-                            <ColumnDefinition Width="20"/>
-                            <ColumnDefinition Width="*"/>
-                        </Grid.ColumnDefinitions>
-                        <StackPanel Grid.Column="0">
-                            <TextBlock Text="分辨率" FontSize="12" Foreground="#666666" Margin="0,0,0,6"/>
-                            <ComboBox x:Name="ResolutionCombo" Height="36" SelectionChanged="ResolutionCombo_SelectionChanged">
-                                <ComboBoxItem Content="自适应窗口大小" Tag="0x0"/>
-                                <ComboBoxItem Content="1920x1080" Tag="1920x1080"/>
-                                <ComboBoxItem Content="2560x1440" Tag="2560x1440"/>
-                                <ComboBoxItem Content="3840x2160" Tag="3840x2160"/>
-                            </ComboBox>
-                        </StackPanel>
-                        <StackPanel Grid.Column="2">
-                            <TextBlock Text="缩放比 (高清屏)" FontSize="12" Foreground="#666666" Margin="0,0,0,6"/>
-                            <ComboBox x:Name="ScaleFactorCombo" Height="36">
-                                <ComboBoxItem Content="100%" Tag="100"/>
-                                <ComboBoxItem Content="125%" Tag="125"/>
-                                <ComboBoxItem Content="150%" Tag="150"/>
-                                <ComboBoxItem Content="175%" Tag="175"/>
-                                <ComboBoxItem Content="200%" Tag="200"/>
-                            </ComboBox>
-                        </StackPanel>
-                    </Grid>
-
-                    <!-- RPA 特有快捷选项 -->
-                    <Border BorderBrush="#EAEAEA" BorderThickness="1" Background="#FAFAFA" CornerRadius="4" Padding="12" Margin="0,0,0,24">
-                        <StackPanel>
-                            <TextBlock Text="会话首选项" FontSize="12" FontWeight="Bold" Margin="0,0,0,8"/>
-                            <CheckBox x:Name="AutoReconnectChk" Content="如果连接中断，则自动重新连接" IsChecked="True" Margin="0,0,0,6"/>
-                            <CheckBox x:Name="RedirectClipboardChk" Content="默认启用双向剪贴板（推荐）" IsChecked="True"/>
-                        </StackPanel>
-                    </Border>
-
-                    <!-- 弹窗底部操作按钮 -->
-                    <StackPanel Orientation="Horizontal" HorizontalAlignment="Right">
-                        <Button Content="取消" Style="{StaticResource VercelBorderButton}" Click="CloseNewConnection_Click"/>
-                        <Button Content="添加连接" Style="{StaticResource VercelBlackButton}" Margin="12,0,0,0" Click="AddConnectionSubmit_Click"/>
-                    </StackPanel>
+        <!-- ======================= 全局 loading 遮罩 ======================= -->
+        <Grid x:Name="GlobalLoadingOverlay" Grid.Row="0" Grid.RowSpan="3" Background="#AA0B0C10" Visibility="Collapsed">
+            <Border Background="#222538" BorderBrush="#3A3D52" BorderThickness="1" CornerRadius="10" Padding="30,20,30,20" HorizontalAlignment="Center" VerticalAlignment="Center" Width="380">
+                <StackPanel HorizontalAlignment="Center">
+                    <ProgressBar IsIndeterminate="True" Height="4" Background="#1D1D2C" Foreground="#E94560" BorderThickness="0" Margin="0,0,0,15"/>
+                    <TextBlock x:Name="LoadingText" Text="正在执行操作，请稍候..." Foreground="#EAEAEA" HorizontalAlignment="Center" TextAlignment="Center" TextWrapping="Wrap"/>
                 </StackPanel>
             </Border>
         </Grid>
 
-        <!-- ======================= 全局 Loading 遮罩层 ======================= -->
-        <Grid x:Name="GlobalLoadingOverlay" Grid.ColumnSpan="2" Background="#90FFFFFF" Visibility="Collapsed">
-            <Border Background="#FFFFFF" BorderBrush="#EAEAEA" BorderThickness="1" CornerRadius="8" 
-                    Padding="32,24,32,24" HorizontalAlignment="Center" VerticalAlignment="Center">
-                <Border.Effect>
-                    <DropShadowEffect BlurRadius="25" Color="#000000" Opacity="0.08" ShadowDepth="4"/>
-                </Border.Effect>
-                <StackPanel Orientation="Horizontal" VerticalAlignment="Center" HorizontalAlignment="Center">
-                    <Grid Width="24" Height="24" Margin="0,0,16,0" RenderTransformOrigin="0.5,0.5">
-                        <Grid.Style>
-                            <Style TargetType="Grid">
-                                <Style.Triggers>
-                                    <DataTrigger Binding="{Binding Visibility, ElementName=GlobalLoadingOverlay}" Value="Visible">
-                                        <DataTrigger.EnterActions>
-                                            <BeginStoryboard Name="SpinStoryboard">
-                                                <Storyboard>
-                                                    <DoubleAnimation Storyboard.TargetProperty="(UIElement.RenderTransform).(RotateTransform.Angle)" 
-                                                                     From="0" To="360" Duration="0:0:1.2" 
-                                                                     RepeatBehavior="Forever"/>
-                                                </Storyboard>
-                                            </BeginStoryboard>
-                                        </DataTrigger.EnterActions>
-                                        <DataTrigger.ExitActions>
-                                            <StopStoryboard BeginStoryboardName="SpinStoryboard"/>
-                                        </DataTrigger.ExitActions>
-                                    </DataTrigger>
-                                </Style.Triggers>
-                            </Style>
-                        </Grid.Style>
-                        <Grid.RenderTransform>
-                            <RotateTransform Angle="0"/>
-                        </Grid.RenderTransform>
-                        <Ellipse Stroke="#EAEAEA" StrokeThickness="3" Width="24" Height="24"/>
-                        <Path Stroke="#000000" StrokeThickness="3" StrokeStartLineCap="Round" StrokeEndLineCap="Round" Data="M 12,2 A 10,10 0 0,1 22,12"/>
-                    </Grid>
-                    <TextBlock x:Name="LoadingText" Text="正在处理，请稍候..." FontSize="14" FontWeight="Medium" Foreground="#111111" VerticalAlignment="Center"/>
-                </StackPanel>
-            </Border>
-        </Grid>
     </Grid>
 </Window>
