@@ -425,7 +425,6 @@
                             <Border Background="#FAFAFA" BorderBrush="#F4F4F5" BorderThickness="1" CornerRadius="4" Padding="10">
                                 <StackPanel>
                                     <TextBlock Text="远程环境保活锁定" FontSize="11" FontWeight="Bold" Foreground="#71717A" Margin="0,0,0,8"/>
-                                    <CheckBox x:Name="ChkAutoReconnect" Content="断开时自动尝试重新连接" Style="{StaticResource ModernCheckBox}" IsChecked="True"/>
                                     <CheckBox x:Name="ChkKeepResolution" Content="锁定强制恢复显卡分辨率" Style="{StaticResource ModernCheckBox}" IsChecked="True"/>
                                     <CheckBox x:Name="ChkPreventSleep" Content="阻止主机睡眠和锁屏" Style="{StaticResource ModernCheckBox}" IsChecked="True"/>
                                 </StackPanel>

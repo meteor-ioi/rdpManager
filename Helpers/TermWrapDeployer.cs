@@ -326,6 +326,9 @@ namespace rdpManager.Helpers
                     Logger.LogWarning($"卸载补丁后清理文件夹受阻 (预期行为): {deleteEx.Message}");
                 }
 
+                // 7. 清理 GPU 渲染保活策略
+                RemoveGpuKeepAlivePolicies();
+
                 Logger.LogInfo("TermWrap 补丁卸载操作执行完毕。");
                 return true;
             }
@@ -559,10 +562,104 @@ namespace rdpManager.Helpers
 
                 // 配置凭据分配与免密登录系统组策略
                 ApplyCredentialsDelegationPolicies();
+
+                // 配置远程桌面连接的 GPU 渲染保活策略
+                ApplyGpuKeepAlivePolicies();
             }
             catch
             {
                 // 容错处理
+            }
+        }
+
+        /// <summary>
+        /// 配置远程桌面连接的 GPU 渲染保活策略，以保证 RDP 会话断开时 GPU 硬件渲染不受限制且分辨率不降为0
+        /// </summary>
+        private static void ApplyGpuKeepAlivePolicies()
+        {
+            try
+            {
+                Logger.LogInfo("开始配置 RDP 显卡渲染保活组策略...");
+
+                // 1. HKLM\SOFTWARE\Policies\Microsoft\Windows NT\Terminal Services
+                using (RegistryKey key = Registry.LocalMachine.CreateSubKey(@"SOFTWARE\Policies\Microsoft\Windows NT\Terminal Services", true))
+                {
+                    key.SetValue("fEnableRemoteFXAdvancedRemoteApp", 1, RegistryValueKind.DWord);
+                    key.SetValue("bEnumerateHWBeforeSW", 1, RegistryValueKind.DWord);
+                    key.SetValue("AVC444ModePreferred", 1, RegistryValueKind.DWord);
+                    key.SetValue("AVCHardwareEncodePreferred", 1, RegistryValueKind.DWord);
+                }
+
+                // 2. HKLM\SYSTEM\CurrentControlSet\Control\Terminal Server\WinStations\RDP-Tcp
+                using (RegistryKey key = Registry.LocalMachine.CreateSubKey(@"SYSTEM\CurrentControlSet\Control\Terminal Server\WinStations\RDP-Tcp", true))
+                {
+                    key.SetValue("fEnableRemoteFXAdvancedRemoteApp", 1, RegistryValueKind.DWord);
+                    key.SetValue("MaxMonitors", 1, RegistryValueKind.DWord);
+                    key.SetValue("MaxXResolution", 1920, RegistryValueKind.DWord);
+                    key.SetValue("MaxYResolution", 1080, RegistryValueKind.DWord);
+                }
+
+                // 3. HKLM\SYSTEM\CurrentControlSet\Control\GraphicsDrivers
+                using (RegistryKey key = Registry.LocalMachine.CreateSubKey(@"SYSTEM\CurrentControlSet\Control\GraphicsDrivers", true))
+                {
+                    key.SetValue("DisableAutoDisableGPU", 1, RegistryValueKind.DWord);
+                }
+
+                Logger.LogInfo("RDP 显卡渲染保活组策略配置完成。");
+            }
+            catch (Exception ex)
+            {
+                Logger.LogWarning($"配置 RDP 显卡渲染保活组策略失败: {ex.Message}");
+            }
+        }
+
+        /// <summary>
+        /// 清理 GPU 渲染保活策略
+        /// </summary>
+        private static void RemoveGpuKeepAlivePolicies()
+        {
+            try
+            {
+                Logger.LogInfo("开始清理 RDP 显卡渲染保活组策略...");
+
+                // 1. HKLM\SOFTWARE\Policies\Microsoft\Windows NT\Terminal Services
+                using (RegistryKey? key = Registry.LocalMachine.OpenSubKey(@"SOFTWARE\Policies\Microsoft\Windows NT\Terminal Services", true))
+                {
+                    if (key != null)
+                    {
+                        key.DeleteValue("fEnableRemoteFXAdvancedRemoteApp", false);
+                        key.DeleteValue("bEnumerateHWBeforeSW", false);
+                        key.DeleteValue("AVC444ModePreferred", false);
+                        key.DeleteValue("AVCHardwareEncodePreferred", false);
+                    }
+                }
+
+                // 2. HKLM\SYSTEM\CurrentControlSet\Control\Terminal Server\WinStations\RDP-Tcp
+                using (RegistryKey? key = Registry.LocalMachine.OpenSubKey(@"SYSTEM\CurrentControlSet\Control\Terminal Server\WinStations\RDP-Tcp", true))
+                {
+                    if (key != null)
+                    {
+                        key.DeleteValue("fEnableRemoteFXAdvancedRemoteApp", false);
+                        key.DeleteValue("MaxMonitors", false);
+                        key.DeleteValue("MaxXResolution", false);
+                        key.DeleteValue("MaxYResolution", false);
+                    }
+                }
+
+                // 3. HKLM\SYSTEM\CurrentControlSet\Control\GraphicsDrivers
+                using (RegistryKey? key = Registry.LocalMachine.OpenSubKey(@"SYSTEM\CurrentControlSet\Control\GraphicsDrivers", true))
+                {
+                    if (key != null)
+                    {
+                        key.DeleteValue("DisableAutoDisableGPU", false);
+                    }
+                }
+
+                Logger.LogInfo("RDP 显卡渲染保活组策略清理完成。");
+            }
+            catch (Exception ex)
+            {
+                Logger.LogWarning($"清理 RDP 显卡渲染保活组策略失败: {ex.Message}");
             }
         }
 

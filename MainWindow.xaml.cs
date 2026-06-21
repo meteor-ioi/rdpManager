@@ -709,19 +709,85 @@ namespace rdpManager
         {
             if (sender is Button btn && btn.Tag is int sessionId)
             {
-                Logger.LogInfo($"正在尝试将系统 RDP 会话 {sessionId} 挂起至后台...");
+                bool keepResolution = ChkKeepResolution.IsChecked == true;
+                Logger.LogInfo($"正在尝试将系统 RDP 会话 {sessionId} {(keepResolution ? "保活断开" : "断开挂起")}...");
                 try
                 {
-                    var psi = new ProcessStartInfo("tsdiscon", sessionId.ToString())
+                    if (keepResolution)
                     {
-                        UseShellExecute = false,
-                        CreateNoWindow = true
-                    };
-                    using (var proc = Process.Start(psi))
-                    {
-                        proc?.WaitForExit(3000);
+                        // 1. 将会话重定向回物理控制台（确保物理显卡继续渲染）
+                        var tsconPsi = new ProcessStartInfo("tscon", $"{sessionId} /dest:console")
+                        {
+                            UseShellExecute = false,
+                            CreateNoWindow = true
+                        };
+                        using (var proc = Process.Start(tsconPsi))
+                        {
+                            proc?.WaitForExit(3000);
+                        }
+                        Logger.LogInfo($"已发送 RDP 会话 {sessionId} 重定向至 Console 指令。");
+
+                        // 2. 获取目标分辨率并执行 PowerShell 调整活动控制台分辨率
+                        int width = 1920;
+                        int height = 1080;
+                        if (ComboResolution.SelectedItem is ComboBoxItem resItem && resItem.Tag is string resTag)
+                        {
+                            if (resTag != "0x0" && resTag.Contains("x"))
+                            {
+                                var parts = resTag.Split('x');
+                                if (parts.Length == 2 && int.TryParse(parts[0], out int w) && int.TryParse(parts[1], out int h))
+                                {
+                                    width = w;
+                                    height = h;
+                                }
+                            }
+                        }
+
+                        // 3. 延时 1.5 秒确保重定向完成，然后后台非阻塞调用 PowerShell 脚本更改分辨率
+                        Task.Run(async () =>
+                        {
+                            await Task.Delay(1500);
+                            try
+                            {
+                                Logger.LogInfo($"正在为物理控制台强制锁定分辨率为: {width}x{height}...");
+                                string psCommand = $"try {{ Set-DisplayResolution -Width {width} -Height {height} -Force -ErrorAction Stop }} catch {{ " +
+                                                   $"$code = 'using System; using System.Runtime.InteropServices; [StructLayout(LayoutKind.Sequential)] public struct DEVMODE {{ [MarshalAs(UnmanagedType.ByValTStr, SizeConst = 32)] public string dmDeviceName; public short dmSpecVersion; public short dmDriverVersion; public short dmSize; public short dmDriverExtra; public int dmFields; public int dmPositionX; public int dmPositionY; public int dmDisplayOrientation; public int dmDisplayFixedOutput; public short dmColor; public short dmDuplex; public short dmYResolution; public short dmTTOption; public short dmCollate; [MarshalAs(UnmanagedType.ByValTStr, SizeConst = 32)] public string dmFormName; public short dmLogPixels; public short dmBitsPerPel; public int dmPelsWidth; public int dmPelsHeight; public int dmDisplayFlags; public int dmNup; public int dmDisplayFrequency; }} public class Display {{ [DllImport(\"user32.dll\")] public static extern int ChangeDisplaySettings(ref DEVMODE devMode, int flags); }}'; " +
+                                                   $"Add-Type -TypeDefinition $code -ErrorAction SilentlyContinue; " +
+                                                   $"$devmode = New-Object DEVMODE; $devmode.dmSize = [System.Runtime.InteropServices.Marshal]::SizeOf($devmode); $devmode.dmFields = 0x00080000 -bor 0x00100000; $devmode.dmPelsWidth = {width}; $devmode.dmPelsHeight = {height}; " +
+                                                   $"[Display]::ChangeDisplaySettings([ref]$devmode, 0) }}";
+
+                                var psPsi = new ProcessStartInfo("powershell", $"-NoProfile -WindowStyle Hidden -Command \"{psCommand}\"")
+                                {
+                                    UseShellExecute = false,
+                                    CreateNoWindow = true
+                                };
+                                using (var psProc = Process.Start(psPsi))
+                                {
+                                    psProc?.WaitForExit(5000);
+                                }
+                                Logger.LogInfo($"物理控制台分辨率恢复指令已执行完毕。");
+                            }
+                            catch (Exception ex)
+                            {
+                                Logger.LogWarning($"执行分辨率恢复脚本失败: {ex.Message}");
+                            }
+                        });
                     }
-                    Logger.LogInfo($"已发送 RDP 会话 {sessionId} 挂起指令。");
+                    else
+                    {
+                        // 普通挂起，只执行 tsdiscon
+                        var psi = new ProcessStartInfo("tsdiscon", sessionId.ToString())
+                        {
+                            UseShellExecute = false,
+                            CreateNoWindow = true
+                        };
+                        using (var proc = Process.Start(psi))
+                        {
+                            proc?.WaitForExit(3000);
+                        }
+                        Logger.LogInfo($"已发送 RDP 会话 {sessionId} 普通挂起指令。");
+                    }
+
                     RefreshSessions();
                 }
                 catch (Exception ex)
