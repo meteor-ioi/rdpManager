@@ -148,6 +148,9 @@ namespace rdpManager
                 EndpWrapStatusLabel.Foreground = (Brush)new BrushConverter().ConvertFromString("#EF4444")!;
             }
 
+            // 若补丁均已启用，则禁用“安装补丁”按钮
+            BtnInstallPatch.IsEnabled = !(isTermWrapActive && isEndpWrapActive);
+
             if (!_hasInitializedExpanderState)
             {
                 bool isInstalled = isTermWrapActive && isEndpWrapActive;

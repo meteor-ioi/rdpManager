@@ -28,11 +28,82 @@
             <Setter Property="BorderThickness" Value="0"/>
             <Setter Property="Padding" Value="0"/>
             <Setter Property="HorizontalContentAlignment" Value="Stretch"/>
-            <Setter Property="HeaderTemplate">
+            <Setter Property="Template">
                 <Setter.Value>
-                    <DataTemplate>
-                        <ContentPresenter Content="{Binding}" VerticalAlignment="Center" Margin="0,2" HorizontalAlignment="Stretch"/>
-                    </DataTemplate>
+                    <ControlTemplate TargetType="Expander">
+                        <Border Background="{TemplateBinding Background}"
+                                BorderBrush="{TemplateBinding BorderBrush}"
+                                BorderThickness="{TemplateBinding BorderThickness}">
+                            <DockPanel>
+                                <ToggleButton x:Name="HeaderSite"
+                                              DockPanel.Dock="Top"
+                                              IsChecked="{Binding IsExpanded, RelativeSource={RelativeSource TemplatedParent}, Mode=TwoWay}"
+                                              Background="Transparent"
+                                              BorderThickness="0"
+                                              Padding="0,0,0,8"
+                                              HorizontalContentAlignment="Stretch"
+                                              Cursor="Hand">
+                                    <ToggleButton.Template>
+                                        <ControlTemplate TargetType="ToggleButton">
+                                            <Border Background="Transparent" Padding="{TemplateBinding Padding}">
+                                                <Grid>
+                                                    <Grid.ColumnDefinitions>
+                                                        <ColumnDefinition Width="*"/>
+                                                        <ColumnDefinition Width="Auto"/>
+                                                    </Grid.ColumnDefinitions>
+                                                    
+                                                    <ContentPresenter Content="{TemplateBinding Content}" 
+                                                                      ContentTemplate="{TemplateBinding ContentTemplate}" 
+                                                                      HorizontalAlignment="Stretch"
+                                                                      VerticalAlignment="Center"/>
+                                                    
+                                                    <!-- 精致的无圆圈三角折叠箭头 -->
+                                                    <Path x:Name="ArrowPath"
+                                                          Grid.Column="1"
+                                                          Data="M 0 0 L 4 4 L 8 0"
+                                                          Stroke="#71717A"
+                                                          StrokeThickness="1.5"
+                                                          HorizontalAlignment="Right"
+                                                          VerticalAlignment="Center"
+                                                          Margin="10,0,0,0"
+                                                          RenderTransformOrigin="0.5,0.5">
+                                                        <Path.RenderTransform>
+                                                            <RotateTransform Angle="0"/>
+                                                        </Path.RenderTransform>
+                                                    </Path>
+                                                </Grid>
+                                            </Border>
+                                            <ControlTemplate.Triggers>
+                                                <DataTrigger Binding="{Binding IsExpanded, RelativeSource={RelativeSource AncestorType=Expander}}" Value="True">
+                                                    <Setter TargetName="ArrowPath" Property="RenderTransform">
+                                                        <Setter.Value>
+                                                            <RotateTransform Angle="180"/>
+                                                        </Setter.Value>
+                                                    </Setter>
+                                                    <Setter TargetName="ArrowPath" Property="Stroke" Value="#18181B"/>
+                                                </DataTrigger>
+                                                <Trigger Property="IsMouseOver" Value="True">
+                                                    <Setter TargetName="ArrowPath" Property="Stroke" Value="#18181B"/>
+                                                </Trigger>
+                                            </ControlTemplate.Triggers>
+                                        </ControlTemplate>
+                                    </ToggleButton.Template>
+                                </ToggleButton>
+                                
+                                <ContentPresenter x:Name="ExpandSite"
+                                                  DockPanel.Dock="Bottom"
+                                                  Visibility="Collapsed"
+                                                  HorizontalAlignment="{TemplateBinding HorizontalContentAlignment}"
+                                                  VerticalAlignment="{TemplateBinding VerticalContentAlignment}"
+                                                  Margin="{TemplateBinding Padding}"/>
+                            </DockPanel>
+                        </Border>
+                        <ControlTemplate.Triggers>
+                            <Trigger Property="IsExpanded" Value="True">
+                                <Setter TargetName="ExpandSite" Property="Visibility" Value="Visible"/>
+                            </Trigger>
+                        </ControlTemplate.Triggers>
+                    </ControlTemplate>
                 </Setter.Value>
             </Setter>
         </Style>
@@ -297,7 +368,7 @@
                                     <TextBlock Text="👤" FontSize="12" Margin="0,0,6,0"/>
                                     <TextBlock Text="系统账号设置" FontSize="12" FontWeight="Bold" Foreground="#3F3F46"/>
                                 </StackPanel>
-                                <Button x:Name="BtnNewUser" Grid.Column="1" Content="+" Foreground="#5985E1" Background="Transparent" BorderThickness="0" FontSize="16" FontWeight="Bold" Cursor="Hand" Click="BtnNewUser_Click"/>
+                                <Button x:Name="BtnNewUser" Grid.Column="1" Content="+" Foreground="#3F3F46" Background="Transparent" BorderThickness="0" FontSize="16" FontWeight="Bold" Cursor="Hand" Click="BtnNewUser_Click" Margin="0,0,4,0" VerticalAlignment="Center"/>
                             </Grid>
                         </Expander.Header>
                         <StackPanel Margin="0,12,0,0">
@@ -372,7 +443,7 @@
                                     <TextBlock Text="外设重定向" FontSize="11" FontWeight="Bold" Foreground="#71717A" Margin="0,0,0,8"/>
                                     <UniformGrid Columns="2">
                                         <CheckBox x:Name="ChkClipboard" Content="同步剪贴板" Style="{StaticResource ModernCheckBox}" IsChecked="True"/>
-                                        <CheckBox x:Name="ChkAudio" Content="音频重定向" Style="{StaticResource ModernCheckBox}" IsChecked="True"/>
+                                        <CheckBox x:Name="ChkAudio" Content="重定向音频" Style="{StaticResource ModernCheckBox}" IsChecked="True"/>
                                         <CheckBox x:Name="ChkMicrophone" Content="重定向麦克风" Style="{StaticResource ModernCheckBox}" IsChecked="False"/>
                                         <CheckBox x:Name="ChkDrives" Content="挂载本地磁盘" Style="{StaticResource ModernCheckBox}" IsChecked="False"/>
                                         <CheckBox x:Name="ChkPrinters" Content="共享打印机" Style="{StaticResource ModernCheckBox}" IsChecked="False"/>
@@ -407,7 +478,7 @@
                                     <TextBlock Text="🔄" FontSize="12" Margin="0,0,6,0"/>
                                     <TextBlock Text="活跃会话管理" FontSize="12" FontWeight="Bold" Foreground="#3F3F46"/>
                                 </StackPanel>
-                                <Border Grid.Column="1" Background="#E4E4E7" CornerRadius="8" Padding="6,1,6,1" VerticalAlignment="Center">
+                                <Border Grid.Column="1" Background="#E4E4E7" CornerRadius="8" Padding="6,1,6,1" VerticalAlignment="Center" Margin="0,0,4,0">
                                     <TextBlock x:Name="SessionCountBadge" Text="0" FontSize="10" FontWeight="Bold" Foreground="#3F3F46"/>
                                 </Border>
                             </Grid>
@@ -477,7 +548,7 @@
                                     <TextBlock Text="📝" FontSize="12" Margin="0,0,6,0"/>
                                     <TextBlock Text="物理运行日志" FontSize="12" FontWeight="Bold" Foreground="#3F3F46"/>
                                 </StackPanel>
-                                <Button Grid.Column="1" Content="📤" ToolTip="导出日志" Foreground="#5985E1" Background="Transparent" BorderThickness="0" FontSize="12" FontWeight="Bold" Cursor="Hand" Click="BtnExportLog_Click"/>
+                                <Button Grid.Column="1" Content="📤" ToolTip="导出日志" Foreground="#3F3F46" Background="Transparent" BorderThickness="0" FontSize="12" FontWeight="Bold" Cursor="Hand" Click="BtnExportLog_Click" Margin="0,0,4,0" VerticalAlignment="Center"/>
                             </Grid>
                         </Expander.Header>
                         <TextBox x:Name="TxtLogOutput" Height="140" Style="{StaticResource ModernTextBox}" 
