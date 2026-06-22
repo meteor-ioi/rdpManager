@@ -338,8 +338,8 @@
         <Style TargetType="ScrollBar">
             <Setter Property="Background" Value="Transparent"/>
             <Setter Property="BorderThickness" Value="0"/>
-            <Setter Property="Width" Value="8"/>
-            <Setter Property="Height" Value="8"/>
+            <Setter Property="Width" Value="6"/>
+            <Setter Property="Height" Value="Auto"/>
             <Setter Property="Template">
                 <Setter.Value>
                     <ControlTemplate TargetType="ScrollBar">
@@ -355,7 +355,7 @@
                                     <Thumb x:Name="Thumb" Background="#E4E4E7" BorderThickness="0">
                                         <Thumb.Template>
                                             <ControlTemplate TargetType="Thumb">
-                                                <Border Background="{TemplateBinding Background}" CornerRadius="4" Margin="2,0"/>
+                                                <Border Background="{TemplateBinding Background}" CornerRadius="3" Margin="1,0"/>
                                             </ControlTemplate>
                                         </Thumb.Template>
                                     </Thumb>
@@ -379,7 +379,7 @@
             <Style.Triggers>
                 <Trigger Property="Orientation" Value="Horizontal">
                     <Setter Property="Width" Value="Auto"/>
-                    <Setter Property="Height" Value="8"/>
+                    <Setter Property="Height" Value="6"/>
                     <Setter Property="Template">
                         <Setter.Value>
                             <ControlTemplate TargetType="ScrollBar">
@@ -395,7 +395,7 @@
                                             <Thumb x:Name="Thumb" Background="#E4E4E7" BorderThickness="0">
                                                 <Thumb.Template>
                                                     <ControlTemplate TargetType="Thumb">
-                                                        <Border Background="{TemplateBinding Background}" CornerRadius="4" Margin="0,2"/>
+                                                        <Border Background="{TemplateBinding Background}" CornerRadius="3" Margin="0,1"/>
                                                     </ControlTemplate>
                                                 </Thumb.Template>
                                             </Thumb>
@@ -551,13 +551,14 @@
                             <Grid Margin="0,0,0,10">
                                 <Grid.ColumnDefinitions>
                                     <ColumnDefinition Width="*"/>
+                                    <ColumnDefinition Width="8"/>
                                     <ColumnDefinition Width="Auto"/>
                                 </Grid.ColumnDefinitions>
                                 
                                 <PasswordBox x:Name="AccountPasswordBox" Style="{StaticResource ModernPasswordBox}" Height="30" VerticalContentAlignment="Center" Margin="0" Grid.Column="0" PasswordChanged="AccountPasswordBox_PasswordChanged"/>
                                 <TextBox x:Name="AccountPasswordTxt" Style="{StaticResource ModernTextBox}" Height="30" VerticalContentAlignment="Center" Margin="0" Grid.Column="0" Visibility="Collapsed" TextChanged="AccountPasswordTxt_TextChanged"/>
                                 
-                                <Button x:Name="BtnShowHidePassword" Grid.Column="1" Content="👁️" Width="30" Height="30" Style="{StaticResource SecondaryBorderButton}" Margin="4,0,0,0" Click="BtnShowHidePassword_Click"/>
+                                <Button x:Name="BtnShowHidePassword" Grid.Column="2" Content="👁️" Width="30" Height="30" Style="{StaticResource SecondaryBorderButton}" Margin="0" Click="BtnShowHidePassword_Click"/>
                             </Grid>
                         </StackPanel>
 
@@ -690,6 +691,7 @@
                                                         <TextBlock Text="{Binding SessionId}" FontSize="12" FontWeight="Bold" Foreground="#18181B"/>
                                                         <TextBlock Text=" : " FontSize="12" FontWeight="Bold" Foreground="#18181B"/>
                                                         <TextBlock Text="{Binding Username}" FontSize="12" FontWeight="Bold" Foreground="#18181B"/>
+                                                        <TextBlock x:Name="TxtCurrentUserCrown" Text=" 👑" FontSize="12" FontWeight="Bold" Foreground="#F59E0B" Visibility="Collapsed"/>
                                                     </StackPanel>
                                                     
                                                     <StackPanel Orientation="Horizontal" Margin="0,4,0,0">
@@ -718,6 +720,11 @@
                                         </Border>
                                         
                                         <DataTemplate.Triggers>
+                                            <!-- 当前登录的 Windows 用户账号，在界面上显示皇冠 -->
+                                            <DataTrigger Binding="{Binding IsCurrentUser}" Value="True">
+                                                <Setter TargetName="TxtCurrentUserCrown" Property="Visibility" Value="Visible"/>
+                                            </DataTrigger>
+                                            
                                             <!-- 当是 Console 会话时，切换可见性 -->
                                             <DataTrigger Binding="{Binding IsConsole}" Value="True">
                                                 <Setter TargetName="TxtConsoleStatus" Property="Visibility" Value="Visible"/>
@@ -792,9 +799,18 @@
                     <StackPanel Margin="0,0,0,16">
                         <Grid>
                             <TextBlock Text="连接密码" FontSize="11" Foreground="#71717A" Margin="0,0,0,4"/>
-                            <Button Content="随机强密码" Foreground="#5985E1" Background="Transparent" BorderThickness="0" FontSize="10" FontWeight="Bold" HorizontalAlignment="Right" Click="BtnGeneratePassword_Click"/>
+                            <Button x:Name="BtnGeneratePassword" Content="随机强密码" Foreground="#5985E1" Background="Transparent" BorderThickness="0" FontSize="10" FontWeight="Bold" HorizontalAlignment="Right" Click="BtnGeneratePassword_Click"/>
                         </Grid>
-                        <TextBox x:Name="NewUserPasswordTxt" Height="30" Style="{StaticResource ModernTextBox}"/>
+                        <Grid>
+                            <Grid.ColumnDefinitions>
+                                <Grid.ColumnDefinition Width="*"/>
+                                <Grid.ColumnDefinition Width="8"/>
+                                <Grid.ColumnDefinition Width="Auto"/>
+                            </Grid.ColumnDefinitions>
+                            <PasswordBox x:Name="NewUserPasswordBox" Style="{StaticResource ModernPasswordBox}" Height="30" VerticalContentAlignment="Center" Margin="0" Grid.Column="0" PasswordChanged="NewUserPasswordBox_PasswordChanged"/>
+                            <TextBox x:Name="NewUserPasswordTxt" Style="{StaticResource ModernTextBox}" Height="30" VerticalContentAlignment="Center" Margin="0" Grid.Column="0" Visibility="Collapsed" TextChanged="NewUserPasswordTxt_TextChanged"/>
+                            <Button x:Name="BtnNewUserShowHidePassword" Grid.Column="2" Content="👁️" Width="30" Height="30" Style="{StaticResource SecondaryBorderButton}" Margin="0" Click="BtnNewUserShowHidePassword_Click"/>
+                        </Grid>
                     </StackPanel>
                     
                     <!-- 正在创建时的提示面板 -->

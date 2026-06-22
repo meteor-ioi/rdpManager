@@ -21,6 +21,7 @@ namespace rdpManager
     {
         private DispatcherTimer _refreshTimer;
         private bool _isPasswordShown = false;
+        private bool _isNewUserPasswordShown = false;
         private string _currentPassword = string.Empty;
 
         // 系统托盘相关
@@ -458,18 +459,10 @@ namespace rdpManager
             ComboAccounts.Items.Clear();
             try
             {
-                string currentUser = Environment.UserName;
                 var accounts = AccountHelper.GetLocalAccounts(true);
                 foreach (var acc in accounts)
                 {
-                    if (string.Equals(acc.Name, currentUser, StringComparison.OrdinalIgnoreCase))
-                    {
-                        ComboAccounts.Items.Add(acc.Name + " 👑");
-                    }
-                    else
-                    {
-                        ComboAccounts.Items.Add(acc.Name);
-                    }
+                    ComboAccounts.Items.Add(acc.Name);
                 }
 
                 if (ComboAccounts.Items.Count > 0)
@@ -496,11 +489,6 @@ namespace rdpManager
                 UpdatePasswordFields(string.Empty);
                 BtnConnectVirtualDesktop.Content = "🔌 连接虚拟桌面";
                 return;
-            }
-
-            if (selected.EndsWith(" 👑"))
-            {
-                selected = selected.Substring(0, selected.Length - 3);
             }
 
             BtnConnectVirtualDesktop.Content = $"🔌 以 {selected} 连接虚拟桌面";
@@ -563,6 +551,14 @@ namespace rdpManager
             e.Handled = true; // 防止触发展开折叠
             NewUserUsernameTxt.Text = string.Empty;
             NewUserPasswordTxt.Text = string.Empty;
+            NewUserPasswordBox.Password = string.Empty;
+
+            // 默认设置为隐藏密码状态
+            _isNewUserPasswordShown = false;
+            BtnNewUserShowHidePassword.Content = "👁️";
+            NewUserPasswordTxt.Visibility = Visibility.Collapsed;
+            NewUserPasswordBox.Visibility = Visibility.Visible;
+
             NewUserModal.Visibility = Visibility.Visible;
         }
 
@@ -571,9 +567,44 @@ namespace rdpManager
             NewUserModal.Visibility = Visibility.Collapsed;
         }
 
+        private void NewUserPasswordBox_PasswordChanged(object sender, RoutedEventArgs e)
+        {
+            if (!_isNewUserPasswordShown)
+            {
+                NewUserPasswordTxt.Text = NewUserPasswordBox.Password;
+            }
+        }
+
+        private void NewUserPasswordTxt_TextChanged(object sender, TextChangedEventArgs e)
+        {
+            if (_isNewUserPasswordShown)
+            {
+                NewUserPasswordBox.Password = NewUserPasswordTxt.Text;
+            }
+        }
+
+        private void BtnNewUserShowHidePassword_Click(object sender, RoutedEventArgs e)
+        {
+            _isNewUserPasswordShown = !_isNewUserPasswordShown;
+            if (_isNewUserPasswordShown)
+            {
+                BtnNewUserShowHidePassword.Content = "🙈";
+                NewUserPasswordBox.Visibility = Visibility.Collapsed;
+                NewUserPasswordTxt.Visibility = Visibility.Visible;
+            }
+            else
+            {
+                BtnNewUserShowHidePassword.Content = "👁️";
+                NewUserPasswordTxt.Visibility = Visibility.Collapsed;
+                NewUserPasswordBox.Visibility = Visibility.Visible;
+            }
+        }
+
         private void BtnGeneratePassword_Click(object sender, RoutedEventArgs e)
         {
-            NewUserPasswordTxt.Text = GenerateStrongPassword();
+            string strongPwd = GenerateStrongPassword();
+            NewUserPasswordBox.Password = strongPwd;
+            NewUserPasswordTxt.Text = strongPwd;
         }
 
         private async void BtnConfirmCreateUser_Click(object sender, RoutedEventArgs e)
@@ -590,6 +621,9 @@ namespace rdpManager
             // 1. 切换至“创建中”状态，禁用控件，显示加载条
             NewUserUsernameTxt.IsEnabled = false;
             NewUserPasswordTxt.IsEnabled = false;
+            NewUserPasswordBox.IsEnabled = false;
+            BtnNewUserShowHidePassword.IsEnabled = false;
+            BtnGeneratePassword.IsEnabled = false;
             BtnCancelNewUser.IsEnabled = false;
             BtnConfirmCreateUser.IsEnabled = false;
             BtnConfirmCreateUser.Content = "创建中...";
@@ -619,6 +653,9 @@ namespace rdpManager
                 // 恢复控件状态以备下次使用
                 NewUserUsernameTxt.IsEnabled = true;
                 NewUserPasswordTxt.IsEnabled = true;
+                NewUserPasswordBox.IsEnabled = true;
+                BtnNewUserShowHidePassword.IsEnabled = true;
+                BtnGeneratePassword.IsEnabled = true;
                 BtnCancelNewUser.IsEnabled = true;
                 BtnConfirmCreateUser.IsEnabled = true;
                 BtnConfirmCreateUser.Content = "确认创建";
@@ -636,6 +673,9 @@ namespace rdpManager
                 // 失败时保持模态框打开，恢复控件状态以便用户修改
                 NewUserUsernameTxt.IsEnabled = true;
                 NewUserPasswordTxt.IsEnabled = true;
+                NewUserPasswordBox.IsEnabled = true;
+                BtnNewUserShowHidePassword.IsEnabled = true;
+                BtnGeneratePassword.IsEnabled = true;
                 BtnCancelNewUser.IsEnabled = true;
                 BtnConfirmCreateUser.IsEnabled = true;
                 BtnConfirmCreateUser.Content = "确认创建";
@@ -892,11 +932,8 @@ namespace rdpManager
                                         }
                                     }
 
-                                    // 如果是当前物理控制台登录账号，或者正好是当前系统的 Windows 用户，打上王冠 👑 标记
-                                    if (string.Equals(username, Environment.UserName, StringComparison.OrdinalIgnoreCase))
-                                    {
-                                        username += " 👑";
-                                    }
+                                    // 如果是当前物理控制台登录账号，或者正好是当前系统的 Windows 用户，标记 IsCurrentUser
+                                    bool isCurrentUser = string.Equals(username, Environment.UserName, StringComparison.OrdinalIgnoreCase);
 
                                     sessions.Add(new SessionItem
                                     {
@@ -904,7 +941,8 @@ namespace rdpManager
                                         Username = username,
                                         StateText = isActive ? "🟢 活跃" : "🟡 断开",
                                         DurationText = "保活中",
-                                        IsConsole = isConsole
+                                        IsConsole = isConsole,
+                                        IsCurrentUser = isCurrentUser
                                     });
                                 }
                             }
@@ -1193,10 +1231,7 @@ namespace rdpManager
             if (ListSessions.ItemsSource is IEnumerable<SessionItem> items)
             {
                 existingSession = items.FirstOrDefault(i => 
-                    !i.IsConsole && (
-                        i.Username.Equals(username, StringComparison.OrdinalIgnoreCase) || 
-                        i.Username.Equals(username + " 👑", StringComparison.OrdinalIgnoreCase)
-                    )
+                    !i.IsConsole && i.Username.Equals(username, StringComparison.OrdinalIgnoreCase)
                 );
             }
 
@@ -1370,14 +1405,8 @@ namespace rdpManager
 
         private void BtnAddVirtualScreen_Click(object sender, RoutedEventArgs e)
         {
-            if (sender is Button btn && btn.Tag is string rawUsername)
+            if (sender is Button btn && btn.Tag is string username)
             {
-                string username = rawUsername;
-                if (username.EndsWith(" 👑"))
-                {
-                    username = username.Substring(0, username.Length - 3);
-                }
-
                 Logger.LogInfo($"用户选择强制为账户 '{username}' 新建一个虚拟桌面会话...");
                 if (CredentialHelper.GetCredential($"RDPManager:{username}", out _, out string savedPwd))
                 {
@@ -1502,5 +1531,6 @@ namespace rdpManager
         public string StateText { get; set; } = string.Empty;
         public string DurationText { get; set; } = string.Empty;
         public bool IsConsole { get; set; }
+        public bool IsCurrentUser { get; set; }
     }
 }
