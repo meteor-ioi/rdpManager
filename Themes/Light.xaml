@@ -1,0 +1,86 @@
+<ResourceDictionary xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+                    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
+
+    <!-- Light Theme Palette (LocalRDP Default) -->
+    
+    <!-- Surfaces & Borders -->
+    <SolidColorBrush x:Key="WindowBackgroundBrush" Color="#F4F4F5"/>
+    <SolidColorBrush x:Key="CardBackgroundBrush" Color="#FFFFFF"/>
+    <SolidColorBrush x:Key="CardBorderBrush" Color="#E4E4E7"/>
+    <SolidColorBrush x:Key="HeaderBackgroundBrush" Color="#FFFFFF"/>
+    <SolidColorBrush x:Key="HeaderBorderBrush" Color="#E4E4E7"/>
+    <SolidColorBrush x:Key="SeparatorBrush" Color="#E4E4E7"/>
+    <SolidColorBrush x:Key="PanelBackgroundBrush" Color="#FAFAFA"/>
+
+    <!-- Typography -->
+    <SolidColorBrush x:Key="TextPrimaryBrush" Color="#09090B"/>
+    <SolidColorBrush x:Key="TextHeadingBrush" Color="#3F3F46"/>
+    <SolidColorBrush x:Key="TextContentBrush" Color="#27272A"/>
+    <SolidColorBrush x:Key="TextSecondaryBrush" Color="#71717A"/>
+    <SolidColorBrush x:Key="TextMutedBrush" Color="#A1A1AA"/>
+
+    <!-- Icons -->
+    <SolidColorBrush x:Key="IconFillBrush" Color="#A1A1AA"/>
+    <SolidColorBrush x:Key="IconHoverFillBrush" Color="#3F3F46"/>
+
+    <!-- Primary Button (Black) -->
+    <SolidColorBrush x:Key="PrimaryBtnBackgroundBrush" Color="#09090B"/>
+    <SolidColorBrush x:Key="PrimaryBtnForegroundBrush" Color="#FFFFFF"/>
+    <SolidColorBrush x:Key="PrimaryBtnHoverBrush" Color="#27272A"/>
+    <SolidColorBrush x:Key="PrimaryBtnDisabledBgBrush" Color="#E4E4E7"/>
+    <SolidColorBrush x:Key="PrimaryBtnDisabledTextBrush" Color="#A1A1AA"/>
+
+    <!-- Secondary Button (White w/ Border) -->
+    <SolidColorBrush x:Key="SecondaryBtnBackgroundBrush" Color="#FFFFFF"/>
+    <SolidColorBrush x:Key="SecondaryBtnBorderBrush" Color="#E4E4E7"/>
+    <SolidColorBrush x:Key="SecondaryBtnForegroundBrush" Color="#18181B"/>
+    <SolidColorBrush x:Key="SecondaryBtnHoverBgBrush" Color="#F4F4F5"/>
+    <SolidColorBrush x:Key="SecondaryBtnHoverBorderBrush" Color="#D4D4D8"/>
+    <SolidColorBrush x:Key="SecondaryBtnDisabledBgBrush" Color="#F4F4F5"/>
+    <SolidColorBrush x:Key="SecondaryBtnDisabledTextBrush" Color="#A1A1AA"/>
+
+    <!-- Danger Button (Border) -->
+    <SolidColorBrush x:Key="DangerBtnForegroundBrush" Color="#EF4444"/>
+    <SolidColorBrush x:Key="DangerBtnBorderBrush" Color="#FCA5A5"/>
+    <SolidColorBrush x:Key="DangerBtnHoverBgBrush" Color="#FEF2F2"/>
+    <SolidColorBrush x:Key="DangerBtnHoverBorderBrush" Color="#EF4444"/>
+
+    <!-- Inputs (TextBox, PasswordBox, ComboBox) -->
+    <SolidColorBrush x:Key="InputBackgroundBrush" Color="#FFFFFF"/>
+    <SolidColorBrush x:Key="InputBorderBrush" Color="#E4E4E7"/>
+    <SolidColorBrush x:Key="InputFocusBorderBrush" Color="#09090B"/>
+    <SolidColorBrush x:Key="InputHoverBorderBrush" Color="#D4D4D8"/>
+    <SolidColorBrush x:Key="InputDisabledBgBrush" Color="#F4F4F5"/>
+
+    <!-- Scrollbar -->
+    <SolidColorBrush x:Key="ScrollbarThumbBrush" Color="#E4E4E7"/>
+    <SolidColorBrush x:Key="ScrollbarThumbHoverBrush" Color="#D4D4D8"/>
+    <SolidColorBrush x:Key="ScrollbarThumbDraggingBrush" Color="#A1A1AA"/>
+
+    <!-- Badges -->
+    <SolidColorBrush x:Key="BadgeNeutralBgBrush" Color="#E4E4E7"/>
+    <SolidColorBrush x:Key="BadgeNeutralTextBrush" Color="#3F3F46"/>
+    <SolidColorBrush x:Key="BadgeSuccessBgBrush" Color="#ECFDF5"/>
+    <SolidColorBrush x:Key="BadgeSuccessTextBrush" Color="#10B981"/>
+    <SolidColorBrush x:Key="BadgeDangerBgBrush" Color="#FEF2F2"/>
+    <SolidColorBrush x:Key="BadgeDangerTextBrush" Color="#EF4444"/>
+    <SolidColorBrush x:Key="BadgeDisabledBgBrush" Color="#F4F4F5"/>
+    <SolidColorBrush x:Key="BadgeDisabledTextBrush" Color="#71717A"/>
+
+    <!-- Alerts -->
+    <SolidColorBrush x:Key="AlertErrorBgBrush" Color="#FEF2F2"/>
+    <SolidColorBrush x:Key="AlertErrorBorderBrush" Color="#FCA5A5"/>
+    <SolidColorBrush x:Key="AlertErrorTitleBrush" Color="#991B1B"/>
+    <SolidColorBrush x:Key="AlertErrorTextBrush" Color="#B91C1C"/>
+
+    <SolidColorBrush x:Key="AlertWarningBgBrush" Color="#FFFBEB"/>
+    <SolidColorBrush x:Key="AlertWarningBorderBrush" Color="#FCD34D"/>
+    <SolidColorBrush x:Key="AlertWarningTitleBrush" Color="#92400E"/>
+    <SolidColorBrush x:Key="AlertWarningTextBrush" Color="#B45309"/>
+
+    <!-- Status Labels -->
+    <SolidColorBrush x:Key="StatusSuccessTextBrush" Color="#10B981"/>
+    <SolidColorBrush x:Key="StatusErrorTextBrush" Color="#EF4444"/>
+    <SolidColorBrush x:Key="StatusDisabledTextBrush" Color="#A1A1AA"/>
+
+</ResourceDictionary>

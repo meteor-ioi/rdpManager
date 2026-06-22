@@ -227,6 +227,7 @@ namespace rdpManager
         public MainWindow()
         {
             InitializeComponent();
+            ComboTheme.SelectedIndex = (int)ThemeManager.CurrentMode;
 
             // 订阅系统日志，并在界面展示
             Logger.OnLogWritten += Logger_OnLogWritten;
@@ -286,16 +287,16 @@ namespace rdpManager
             bool isAdmin = new WindowsPrincipal(WindowsIdentity.GetCurrent()).IsInRole(WindowsBuiltInRole.Administrator);
             if (isAdmin)
             {
-                AdminTag.Background = (Brush)new BrushConverter().ConvertFromString("#ECFDF5")!; // 浅绿
+                AdminTag.SetResourceReference(System.Windows.Controls.Border.BackgroundProperty, "BadgeSuccessBgBrush"); // 浅绿
                 AdminTagTxt.Text = "已提权";
-                AdminTagTxt.Foreground = (Brush)new BrushConverter().ConvertFromString("#10B981")!;
+                AdminTagTxt.SetResourceReference(System.Windows.Controls.TextBlock.ForegroundProperty, "BadgeSuccessTextBrush");
                 PrivilegeWarningAlert.Visibility = Visibility.Collapsed;
             }
             else
             {
-                AdminTag.Background = (Brush)new BrushConverter().ConvertFromString("#FEF2F2")!; // 浅红
+                AdminTag.SetResourceReference(System.Windows.Controls.Border.BackgroundProperty, "BadgeDangerBgBrush"); // 浅红
                 AdminTagTxt.Text = "受限运行";
-                AdminTagTxt.Foreground = (Brush)new BrushConverter().ConvertFromString("#EF4444")!;
+                AdminTagTxt.SetResourceReference(System.Windows.Controls.TextBlock.ForegroundProperty, "BadgeDangerTextBrush");
                 PrivilegeWarningAlert.Visibility = Visibility.Visible;
             }
 
@@ -304,15 +305,15 @@ namespace rdpManager
             bool isRdpEnabled = TermWrapDeployer.IsRdpFeatureEnabled();
             if (isRdpRunning && isRdpEnabled)
             {
-                RdpTag.Background = (Brush)new BrushConverter().ConvertFromString("#ECFDF5")!;
+                RdpTag.SetResourceReference(System.Windows.Controls.Border.BackgroundProperty, "BadgeSuccessBgBrush");
                 RdpTagTxt.Text = "RDP开";
-                RdpTagTxt.Foreground = (Brush)new BrushConverter().ConvertFromString("#10B981")!;
+                RdpTagTxt.SetResourceReference(System.Windows.Controls.TextBlock.ForegroundProperty, "BadgeSuccessTextBrush");
             }
             else
             {
-                RdpTag.Background = (Brush)new BrushConverter().ConvertFromString("#F4F4F5")!;
+                RdpTag.SetResourceReference(System.Windows.Controls.Border.BackgroundProperty, "BadgeDisabledBgBrush");
                 RdpTagTxt.Text = isRdpEnabled ? "RDP关" : "RDP禁用";
-                RdpTagTxt.Foreground = (Brush)new BrushConverter().ConvertFromString("#71717A")!;
+                RdpTagTxt.SetResourceReference(System.Windows.Controls.TextBlock.ForegroundProperty, "BadgeDisabledTextBrush");
             }
 
             // 控制警告横幅显示
@@ -325,25 +326,25 @@ namespace rdpManager
             if (isTermWrapActive)
             {
                 TermWrapStatusLabel.Text = "已启用";
-                TermWrapStatusLabel.Foreground = (Brush)new BrushConverter().ConvertFromString("#10B981")!;
+                TermWrapStatusLabel.SetResourceReference(System.Windows.Controls.TextBlock.ForegroundProperty, "StatusSuccessTextBrush");
                 RdpWrapStatusLabel.Text = "未安装";
-                RdpWrapStatusLabel.Foreground = (Brush)new BrushConverter().ConvertFromString("#A1A1AA")!;
+                RdpWrapStatusLabel.SetResourceReference(System.Windows.Controls.TextBlock.ForegroundProperty, "StatusDisabledTextBrush");
             }
             else
             {
                 if (isRdpWrapActive)
                 {
                     TermWrapStatusLabel.Text = "未安装";
-                    TermWrapStatusLabel.Foreground = (Brush)new BrushConverter().ConvertFromString("#A1A1AA")!;
+                    TermWrapStatusLabel.SetResourceReference(System.Windows.Controls.TextBlock.ForegroundProperty, "StatusDisabledTextBrush");
                     RdpWrapStatusLabel.Text = "已启用";
-                    RdpWrapStatusLabel.Foreground = (Brush)new BrushConverter().ConvertFromString("#10B981")!;
+                    RdpWrapStatusLabel.SetResourceReference(System.Windows.Controls.TextBlock.ForegroundProperty, "StatusSuccessTextBrush");
                 }
                 else
                 {
                     TermWrapStatusLabel.Text = "未安装";
-                    TermWrapStatusLabel.Foreground = (Brush)new BrushConverter().ConvertFromString("#EF4444")!;
+                    TermWrapStatusLabel.SetResourceReference(System.Windows.Controls.TextBlock.ForegroundProperty, "StatusErrorTextBrush");
                     RdpWrapStatusLabel.Text = "未安装";
-                    RdpWrapStatusLabel.Foreground = (Brush)new BrushConverter().ConvertFromString("#EF4444")!;
+                    RdpWrapStatusLabel.SetResourceReference(System.Windows.Controls.TextBlock.ForegroundProperty, "StatusErrorTextBrush");
                 }
             }
 
@@ -352,7 +353,7 @@ namespace rdpManager
             {
                 isEndpWrapActive = true; // x86 系统无 EndpWrap，视为不影响
                 EndpWrapStatusLabel.Text = "不适用";
-                EndpWrapStatusLabel.Foreground = (Brush)new BrushConverter().ConvertFromString("#A1A1AA")!;
+                EndpWrapStatusLabel.SetResourceReference(System.Windows.Controls.TextBlock.ForegroundProperty, "StatusDisabledTextBrush");
             }
             else
             {
@@ -360,12 +361,12 @@ namespace rdpManager
                 if (isEndpWrapActive)
                 {
                     EndpWrapStatusLabel.Text = "已启用";
-                    EndpWrapStatusLabel.Foreground = (Brush)new BrushConverter().ConvertFromString("#10B981")!;
+                    EndpWrapStatusLabel.SetResourceReference(System.Windows.Controls.TextBlock.ForegroundProperty, "StatusSuccessTextBrush");
                 }
                 else
                 {
                     EndpWrapStatusLabel.Text = "未安装";
-                    EndpWrapStatusLabel.Foreground = (Brush)new BrushConverter().ConvertFromString("#EF4444")!;
+                    EndpWrapStatusLabel.SetResourceReference(System.Windows.Controls.TextBlock.ForegroundProperty, "StatusErrorTextBrush");
                 }
             }
 
@@ -1559,5 +1560,16 @@ namespace rdpManager
         public string DurationText { get; set; } = string.Empty;
         public bool IsConsole { get; set; }
         public bool IsCurrentUser { get; set; }
+
+        private void ComboTheme_SelectionChanged(object sender, System.Windows.Controls.SelectionChangedEventArgs e)
+        {
+            if (ComboTheme.SelectedItem is System.Windows.Controls.ComboBoxItem item)
+            {
+                if (Enum.TryParse(item.Tag?.ToString(), out ThemeMode mode))
+                {
+                    ThemeManager.SaveThemeMode(mode);
+                }
+            }
+        }
     }
 }

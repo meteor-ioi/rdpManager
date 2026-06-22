@@ -19,6 +19,8 @@ namespace rdpManager
                 Logger.LogWarning($"注册 CodePagesEncodingProvider 失败: {ex.Message}");
             }
 
+            ThemeManager.Initialize();
+
             base.OnStartup(e);
 
             // 初始化未捕获异常处理

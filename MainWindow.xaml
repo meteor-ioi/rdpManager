@@ -4,9 +4,9 @@
         xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
         xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
         mc:Ignorable="d"
-        Title="LocalRDP - 本地多用户虚拟桌面" Height="820" Width="450"
+        Title="LocalRDP - 多用户虚拟桌面" Height="820" Width="450"
         WindowStartupLocation="CenterScreen" ResizeMode="CanMinimize"
-        Background="#F4F4F5" BorderBrush="#E4E4E7" BorderThickness="0">
+        Background="{DynamicResource WindowBackgroundBrush}" BorderBrush="{DynamicResource WindowBackgroundBrush}" BorderThickness="0">
 
     <Window.Resources>
         <!-- 基础全局样式 -->
@@ -14,8 +14,8 @@
 
         <!-- 扁平卡片阴影 -->
         <Style x:Key="CardBorderStyle" TargetType="Border">
-            <Setter Property="Background" Value="#FFFFFF"/>
-            <Setter Property="BorderBrush" Value="#E4E4E7"/>
+            <Setter Property="Background" Value="{DynamicResource CardBackgroundBrush}"/>
+            <Setter Property="BorderBrush" Value="{DynamicResource CardBorderBrush}"/>
             <Setter Property="BorderThickness" Value="1"/>
             <Setter Property="CornerRadius" Value="8"/>
             <Setter Property="Margin" Value="0,0,0,14"/>
@@ -41,7 +41,7 @@
                                                     <ColumnDefinition Width="Auto"/>
                                                     <ColumnDefinition Width="*"/>
                                                 </Grid.ColumnDefinitions>
-                                                <Path x:Name="Arrow" Grid.Column="0" HorizontalAlignment="Center" VerticalAlignment="Center" Data="M 0 0 L 4 4 L 0 8 Z" Fill="#A1A1AA" Margin="0,0,8,0" RenderTransformOrigin="0.5,0.5">
+                                                <Path x:Name="Arrow" Grid.Column="0" HorizontalAlignment="Center" VerticalAlignment="Center" Data="M 0 0 L 4 4 L 0 8 Z" Fill="{DynamicResource IconFillBrush}" Margin="0,0,8,0" RenderTransformOrigin="0.5,0.5">
                                                     <Path.RenderTransform>
                                                         <RotateTransform Angle="0"/>
                                                     </Path.RenderTransform>
@@ -58,7 +58,7 @@
                                                 </Setter>
                                             </Trigger>
                                             <Trigger Property="IsMouseOver" Value="True">
-                                                <Setter TargetName="Arrow" Property="Fill" Value="#3F3F46"/>
+                                                <Setter TargetName="Arrow" Property="Fill" Value="{DynamicResource IconHoverFillBrush}"/>
                                             </Trigger>
                                         </ControlTemplate.Triggers>
                                     </ControlTemplate>
@@ -78,8 +78,8 @@
 
         <!-- 扁平黑色大按钮（类 Tailwind text-white bg-black） -->
         <Style x:Key="PrimaryBlackButton" TargetType="Button">
-            <Setter Property="Background" Value="#09090B"/>
-            <Setter Property="Foreground" Value="#FFFFFF"/>
+            <Setter Property="Background" Value="{DynamicResource PrimaryBtnBackgroundBrush}"/>
+            <Setter Property="Foreground" Value="{DynamicResource PrimaryBtnForegroundBrush}"/>
             <Setter Property="BorderThickness" Value="0"/>
             <Setter Property="FontSize" Value="13"/>
             <Setter Property="FontWeight" Value="SemiBold"/>
@@ -93,11 +93,11 @@
                         </Border>
                         <ControlTemplate.Triggers>
                             <Trigger Property="IsMouseOver" Value="True">
-                                <Setter TargetName="BtnBorder" Property="Background" Value="#27272A"/>
+                                <Setter TargetName="BtnBorder" Property="Background" Value="{DynamicResource PrimaryBtnHoverBrush}"/>
                             </Trigger>
                             <Trigger Property="IsEnabled" Value="False">
-                                <Setter TargetName="BtnBorder" Property="Background" Value="#E4E4E7"/>
-                                <Setter Property="Foreground" Value="#A1A1AA"/>
+                                <Setter TargetName="BtnBorder" Property="Background" Value="{DynamicResource PrimaryBtnDisabledBgBrush}"/>
+                                <Setter Property="Foreground" Value="{DynamicResource PrimaryBtnDisabledTextBrush}"/>
                             </Trigger>
                         </ControlTemplate.Triggers>
                     </ControlTemplate>
@@ -107,9 +107,9 @@
 
         <!-- 扁平白色边框按钮 (类 Tailwind border-zinc-200) -->
         <Style x:Key="SecondaryBorderButton" TargetType="Button">
-            <Setter Property="Background" Value="#FFFFFF"/>
-            <Setter Property="Foreground" Value="#18181B"/>
-            <Setter Property="BorderBrush" Value="#E4E4E7"/>
+            <Setter Property="Background" Value="{DynamicResource SecondaryBtnBackgroundBrush}"/>
+            <Setter Property="Foreground" Value="{DynamicResource SecondaryBtnForegroundBrush}"/>
+            <Setter Property="BorderBrush" Value="{DynamicResource SecondaryBtnBorderBrush}"/>
             <Setter Property="BorderThickness" Value="1"/>
             <Setter Property="FontSize" Value="11"/>
             <Setter Property="FontWeight" Value="Medium"/>
@@ -126,12 +126,12 @@
                         </Border>
                         <ControlTemplate.Triggers>
                             <Trigger Property="IsMouseOver" Value="True">
-                                <Setter TargetName="BtnBorder" Property="Background" Value="#F4F4F5"/>
-                                <Setter TargetName="BtnBorder" Property="BorderBrush" Value="#D4D4D8"/>
+                                <Setter TargetName="BtnBorder" Property="Background" Value="{DynamicResource SecondaryBtnHoverBgBrush}"/>
+                                <Setter TargetName="BtnBorder" Property="BorderBrush" Value="{DynamicResource SecondaryBtnHoverBorderBrush}"/>
                             </Trigger>
                             <Trigger Property="IsEnabled" Value="False">
-                                <Setter TargetName="BtnBorder" Property="Background" Value="#F4F4F5"/>
-                                <Setter Property="Foreground" Value="#A1A1AA"/>
+                                <Setter TargetName="BtnBorder" Property="Background" Value="{DynamicResource SecondaryBtnHoverBgBrush}"/>
+                                <Setter Property="Foreground" Value="{DynamicResource PrimaryBtnDisabledTextBrush}"/>
                             </Trigger>
                         </ControlTemplate.Triggers>
                     </ControlTemplate>
@@ -141,8 +141,8 @@
 
         <!-- 扁平白色边框警告按钮 (类 Tailwind text-rose-500) -->
         <Style x:Key="DangerBorderButton" TargetType="Button" BasedOn="{StaticResource SecondaryBorderButton}">
-            <Setter Property="Foreground" Value="#EF4444"/>
-            <Setter Property="BorderBrush" Value="#FCA5A5"/>
+            <Setter Property="Foreground" Value="{DynamicResource DangerBtnForegroundBrush}"/>
+            <Setter Property="BorderBrush" Value="{DynamicResource DangerBtnBorderBrush}"/>
             <Setter Property="Template">
                 <Setter.Value>
                     <ControlTemplate TargetType="Button">
@@ -154,8 +154,8 @@
                         </Border>
                         <ControlTemplate.Triggers>
                             <Trigger Property="IsMouseOver" Value="True">
-                                <Setter TargetName="BtnBorder" Property="Background" Value="#FEF2F2"/>
-                                <Setter TargetName="BtnBorder" Property="BorderBrush" Value="#EF4444"/>
+                                <Setter TargetName="BtnBorder" Property="Background" Value="{DynamicResource DangerBtnHoverBgBrush}"/>
+                                <Setter TargetName="BtnBorder" Property="BorderBrush" Value="{DynamicResource DangerBtnHoverBorderBrush}"/>
                             </Trigger>
                         </ControlTemplate.Triggers>
                     </ControlTemplate>
@@ -165,11 +165,11 @@
 
         <!-- 输入框样式 -->
         <Style x:Key="ModernTextBox" TargetType="TextBox">
-            <Setter Property="BorderBrush" Value="#E4E4E7"/>
+            <Setter Property="BorderBrush" Value="{DynamicResource InputBorderBrush}"/>
             <Setter Property="BorderThickness" Value="1"/>
             <Setter Property="Padding" Value="8,6,8,6"/>
             <Setter Property="VerticalAlignment" Value="Center"/>
-            <Setter Property="Background" Value="#FFFFFF"/>
+            <Setter Property="Background" Value="{DynamicResource InputBackgroundBrush}"/>
             <Setter Property="FontSize" Value="12"/>
             <Setter Property="Template">
                 <Setter.Value>
@@ -179,7 +179,7 @@
                         </Border>
                         <ControlTemplate.Triggers>
                             <Trigger Property="IsFocused" Value="True">
-                                <Setter TargetName="border" Property="BorderBrush" Value="#09090B"/>
+                                <Setter TargetName="border" Property="BorderBrush" Value="{DynamicResource InputFocusBorderBrush}"/>
                             </Trigger>
                         </ControlTemplate.Triggers>
                     </ControlTemplate>
@@ -189,11 +189,11 @@
 
         <!-- 密码框样式 -->
         <Style x:Key="ModernPasswordBox" TargetType="PasswordBox">
-            <Setter Property="BorderBrush" Value="#E4E4E7"/>
+            <Setter Property="BorderBrush" Value="{DynamicResource InputBorderBrush}"/>
             <Setter Property="BorderThickness" Value="1"/>
             <Setter Property="Padding" Value="8,6,8,6"/>
             <Setter Property="VerticalAlignment" Value="Center"/>
-            <Setter Property="Background" Value="#FFFFFF"/>
+            <Setter Property="Background" Value="{DynamicResource InputBackgroundBrush}"/>
             <Setter Property="FontSize" Value="12"/>
             <Setter Property="Template">
                 <Setter.Value>
@@ -203,7 +203,7 @@
                         </Border>
                         <ControlTemplate.Triggers>
                             <Trigger Property="IsFocused" Value="True">
-                                <Setter TargetName="border" Property="BorderBrush" Value="#09090B"/>
+                                <Setter TargetName="border" Property="BorderBrush" Value="{DynamicResource InputFocusBorderBrush}"/>
                             </Trigger>
                         </ControlTemplate.Triggers>
                     </ControlTemplate>
@@ -213,9 +213,9 @@
 
         <!-- 下拉选择框样式 (带圆角和悬停/打开状态交互) -->
         <Style x:Key="ModernComboBox" TargetType="ComboBox">
-            <Setter Property="BorderBrush" Value="#E4E4E7"/>
+            <Setter Property="BorderBrush" Value="{DynamicResource InputBorderBrush}"/>
             <Setter Property="BorderThickness" Value="1"/>
-            <Setter Property="Background" Value="#FFFFFF"/>
+            <Setter Property="Background" Value="{DynamicResource InputBackgroundBrush}"/>
             <Setter Property="FontSize" Value="12"/>
             <Setter Property="Height" Value="30"/>
             <Setter Property="Padding" Value="8,4,8,4"/>
@@ -262,11 +262,11 @@
                                                           HorizontalAlignment="Center" 
                                                           VerticalAlignment="Center" 
                                                           Data="M 0 0 L 3.5 3.5 L 7 0 Z" 
-                                                          Fill="#A1A1AA"/>
+                                                          Fill="{DynamicResource IconFillBrush}"/>
                                                 </Border>
                                                 <ControlTemplate.Triggers>
                                                     <Trigger Property="IsMouseOver" Value="True">
-                                                        <Setter TargetName="Arrow" Property="Fill" Value="#3F3F46"/>
+                                                        <Setter TargetName="Arrow" Property="Fill" Value="{DynamicResource IconHoverFillBrush}"/>
                                                     </Trigger>
                                                 </ControlTemplate.Triggers>
                                             </ControlTemplate>
@@ -309,10 +309,10 @@
                                 <Setter TargetName="border" Property="BorderBrush" Value="#D4D4D8"/>
                             </Trigger>
                             <Trigger Property="IsDropDownOpen" Value="True">
-                                <Setter TargetName="border" Property="BorderBrush" Value="#09090B"/>
+                                <Setter TargetName="border" Property="BorderBrush" Value="{DynamicResource InputFocusBorderBrush}"/>
                             </Trigger>
                             <Trigger Property="IsEnabled" Value="false">
-                                <Setter Property="Foreground" Value="#A1A1AA"/>
+                                <Setter Property="Foreground" Value="{DynamicResource PrimaryBtnDisabledTextBrush}"/>
                                 <Setter TargetName="border" Property="Background" Value="#F4F4F5"/>
                             </Trigger>
                         </ControlTemplate.Triggers>
@@ -352,7 +352,7 @@
                                     <RepeatButton Command="ScrollBar.PageDownCommand" Background="Transparent" BorderThickness="0" Template="{StaticResource ScrollBarPageButtonTemplate}"/>
                                 </Track.IncreaseRepeatButton>
                                 <Track.Thumb>
-                                    <Thumb x:Name="Thumb" Background="#E4E4E7" BorderThickness="0">
+                                    <Thumb x:Name="Thumb" Background="{DynamicResource ScrollbarThumbBrush}" BorderThickness="0">
                                         <Thumb.Template>
                                             <ControlTemplate TargetType="Thumb">
                                                 <Border Background="{TemplateBinding Background}" CornerRadius="3" Margin="1,0"/>
@@ -364,13 +364,13 @@
                         </Grid>
                         <ControlTemplate.Triggers>
                             <Trigger SourceName="Thumb" Property="IsMouseOver" Value="True">
-                                <Setter TargetName="Thumb" Property="Background" Value="#D4D4D8"/>
+                                <Setter TargetName="Thumb" Property="Background" Value="{DynamicResource ScrollbarThumbHoverBrush}"/>
                             </Trigger>
                             <Trigger SourceName="Thumb" Property="IsDragging" Value="True">
-                                <Setter TargetName="Thumb" Property="Background" Value="#A1A1AA"/>
+                                <Setter TargetName="Thumb" Property="Background" Value="{DynamicResource ScrollbarThumbDraggingBrush}"/>
                             </Trigger>
                             <Trigger Property="IsMouseOver" Value="True">
-                                <Setter TargetName="Thumb" Property="Background" Value="#D4D4D8"/>
+                                <Setter TargetName="Thumb" Property="Background" Value="{DynamicResource ScrollbarThumbHoverBrush}"/>
                             </Trigger>
                         </ControlTemplate.Triggers>
                     </ControlTemplate>
@@ -392,7 +392,7 @@
                                             <RepeatButton Command="ScrollBar.PageRightCommand" Background="Transparent" BorderThickness="0" Template="{StaticResource ScrollBarPageButtonTemplate}"/>
                                         </Track.IncreaseRepeatButton>
                                         <Track.Thumb>
-                                            <Thumb x:Name="Thumb" Background="#E4E4E7" BorderThickness="0">
+                                            <Thumb x:Name="Thumb" Background="{DynamicResource ScrollbarThumbBrush}" BorderThickness="0">
                                                 <Thumb.Template>
                                                     <ControlTemplate TargetType="Thumb">
                                                         <Border Background="{TemplateBinding Background}" CornerRadius="3" Margin="0,1"/>
@@ -404,13 +404,13 @@
                                 </Grid>
                                 <ControlTemplate.Triggers>
                                     <Trigger SourceName="Thumb" Property="IsMouseOver" Value="True">
-                                        <Setter TargetName="Thumb" Property="Background" Value="#D4D4D8"/>
+                                        <Setter TargetName="Thumb" Property="Background" Value="{DynamicResource ScrollbarThumbHoverBrush}"/>
                                     </Trigger>
                                     <Trigger SourceName="Thumb" Property="IsDragging" Value="True">
-                                        <Setter TargetName="Thumb" Property="Background" Value="#A1A1AA"/>
+                                        <Setter TargetName="Thumb" Property="Background" Value="{DynamicResource ScrollbarThumbDraggingBrush}"/>
                                     </Trigger>
                                     <Trigger Property="IsMouseOver" Value="True">
-                                        <Setter TargetName="Thumb" Property="Background" Value="#D4D4D8"/>
+                                        <Setter TargetName="Thumb" Property="Background" Value="{DynamicResource ScrollbarThumbHoverBrush}"/>
                                     </Trigger>
                                 </ControlTemplate.Triggers>
                             </ControlTemplate>
@@ -430,7 +430,7 @@
         </Grid.RowDefinitions>
 
         <!-- ======================= 顶部 Header ======================= -->
-        <Border Grid.Row="0" Background="#FFFFFF" BorderBrush="#E4E4E7" BorderThickness="0,0,0,1" Padding="16,14,16,12">
+        <Border Grid.Row="0" Background="{DynamicResource HeaderBackgroundBrush}" BorderBrush="{DynamicResource HeaderBorderBrush}" BorderThickness="0,0,0,1" Padding="16,14,16,12">
             <StackPanel>
                 <Grid>
                     <Grid.ColumnDefinitions>
@@ -440,18 +440,25 @@
                     
                     <!-- 标题 & 徽章 -->
                     <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
-                        <TextBlock Text="LocalRDP" FontSize="16" FontFamily="{StaticResource MainFont}" FontWeight="Bold" Foreground="#09090B" VerticalAlignment="Center"/>
+                        <TextBlock Text="LocalRDP" FontSize="16" FontFamily="{StaticResource MainFont}" FontWeight="Bold" Foreground="{DynamicResource TextPrimaryBrush}" VerticalAlignment="Center"/>
                     </StackPanel>
 
                     <!-- 状态标签区 -->
                     <StackPanel Grid.Column="1" Orientation="Horizontal" VerticalAlignment="Center">
+                        <!-- 主题切换 -->
+                        <ComboBox x:Name="ComboTheme" Style="{StaticResource ModernComboBox}" Width="85" Height="24" FontSize="11" Margin="0,0,8,0" Padding="6,0" SelectionChanged="ComboTheme_SelectionChanged">
+                            <ComboBoxItem Content="跟随系统" Tag="System"/>
+                            <ComboBoxItem Content="白 天" Tag="Light"/>
+                            <ComboBoxItem Content="黑 夜" Tag="Dark"/>
+                        </ComboBox>
+                        
                         <!-- 提权状态 -->
-                        <Border x:Name="AdminTag" Background="#FEF2F2" CornerRadius="4" Padding="6,2,6,2">
-                            <TextBlock x:Name="AdminTagTxt" Text="受限运行" FontSize="10" FontWeight="SemiBold" Foreground="#EF4444"/>
+                        <Border x:Name="AdminTag" Background="{DynamicResource BadgeDangerBgBrush}" CornerRadius="4" Padding="6,2,6,2">
+                            <TextBlock x:Name="AdminTagTxt" Text="受限运行" FontSize="10" FontWeight="SemiBold" Foreground="{DynamicResource BadgeDangerTextBrush}"/>
                         </Border>
                         <!-- RDP状态 -->
-                        <Border x:Name="RdpTag" Background="#F4F4F5" CornerRadius="4" Padding="6,2,6,2" Margin="6,0,0,0">
-                            <TextBlock x:Name="RdpTagTxt" Text="RDP关" FontSize="10" FontWeight="SemiBold" Foreground="#71717A"/>
+                        <Border x:Name="RdpTag" Background="{DynamicResource BadgeDisabledBgBrush}" CornerRadius="4" Padding="6,2,6,2" Margin="6,0,0,0">
+                            <TextBlock x:Name="RdpTagTxt" Text="RDP关" FontSize="10" FontWeight="SemiBold" Foreground="{DynamicResource TextSecondaryBrush}"/>
                         </Border>
                     </StackPanel>
                 </Grid>
@@ -463,10 +470,10 @@
             <StackPanel>
                 
                 <!-- 权限警告横幅 (如果没管理员权限就显示) -->
-                <Border x:Name="PrivilegeWarningAlert" Background="#FEF2F2" BorderBrush="#FCA5A5" BorderThickness="1" CornerRadius="6" Padding="12,10" Margin="0,0,0,14" Visibility="Collapsed">
+                <Border x:Name="PrivilegeWarningAlert" Background="{DynamicResource AlertErrorBgBrush}" BorderBrush="{DynamicResource AlertErrorBorderBrush}" BorderThickness="1" CornerRadius="6" Padding="12,10" Margin="0,0,0,14" Visibility="Collapsed">
                     <StackPanel>
-                        <TextBlock Text="⚠️ 权限不足 (受限运行)" FontWeight="Bold" Foreground="#991B1B" FontSize="12" Margin="0,0,0,4"/>
-                        <TextBlock Text="本程序未以管理员身份运行。请关闭并重新右键“以管理员身份运行”打开本程序，否则补丁部署与账号管理功能将无法生效。" Foreground="#B91C1C" FontSize="11" TextWrapping="Wrap" LineHeight="16"/>
+                        <TextBlock Text="⚠️ 权限不足 (受限运行)" FontWeight="Bold" Foreground="{DynamicResource AlertErrorTitleBrush}" FontSize="12" Margin="0,0,0,4"/>
+                        <TextBlock Text="本程序未以管理员身份运行。请关闭并重新右键“以管理员身份运行”打开本程序，否则补丁部署与账号管理功能将无法生效。" Foreground="{DynamicResource AlertErrorTextBrush}" FontSize="11" TextWrapping="Wrap" LineHeight="16"/>
                     </StackPanel>
                 </Border>
 
@@ -474,18 +481,24 @@
                 <Border Style="{StaticResource CardBorderStyle}">
                     <Expander x:Name="ExpanderPatchManager" Style="{StaticResource ModernExpander}" IsExpanded="True">
                         <Expander.Header>
-                            <StackPanel Orientation="Horizontal">
-                                <TextBlock Text="🛡️" FontSize="12" Margin="0,0,6,0"/>
-                                <TextBlock Text="并发补丁管理" FontSize="12" FontWeight="Bold" Foreground="#3F3F46"/>
-                                <TextBlock x:Name="PatchSuccessIcon" Text="✅" FontSize="12" Margin="6,0,0,0" Visibility="Collapsed"/>
-                            </StackPanel>
+                            <Grid HorizontalAlignment="Stretch">
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="*"/>
+                                    <ColumnDefinition Width="38"/>
+                                </Grid.ColumnDefinitions>
+                                <StackPanel Orientation="Horizontal" Grid.Column="0">
+                                    <TextBlock Text="🛡️" FontSize="12" Margin="0,0,6,0"/>
+                                    <TextBlock Text="并发补丁管理" FontSize="12" FontWeight="Bold" Foreground="{DynamicResource TextHeadingBrush}"/>
+                                </StackPanel>
+                                <TextBlock x:Name="PatchSuccessIcon" Grid.Column="1" Text="✅" FontSize="12" Margin="0,0,8,0" Visibility="Collapsed" HorizontalAlignment="Right" VerticalAlignment="Center"/>
+                            </Grid>
                         </Expander.Header>
                         <StackPanel Margin="0,12,0,0">
                             <!-- RDP未开启警告横幅 -->
-                            <Border x:Name="RdpDisabledWarningAlert" Background="#FFFBEB" BorderBrush="#FCD34D" BorderThickness="1" CornerRadius="6" Padding="12,10" Margin="0,0,0,10" Visibility="Collapsed">
+                            <Border x:Name="RdpDisabledWarningAlert" Background="{DynamicResource AlertWarningBgBrush}" BorderBrush="{DynamicResource AlertWarningBorderBrush}" BorderThickness="1" CornerRadius="6" Padding="12,10" Margin="0,0,0,10" Visibility="Collapsed">
                                 <StackPanel>
-                                    <TextBlock Text="⚠️ 系统远程桌面功能尚未开启！" FontWeight="Bold" Foreground="#92400E" FontSize="12" Margin="0,0,0,4"/>
-                                    <TextBlock Text="请前往“设置” -> “系统” -> “远程桌面”启用后，再安装补丁。" Foreground="#B45309" FontSize="11" TextWrapping="Wrap" LineHeight="16"/>
+                                    <TextBlock Text="⚠️ 系统远程桌面功能尚未开启！" FontWeight="Bold" Foreground="{DynamicResource AlertWarningTitleBrush}" FontSize="12" Margin="0,0,0,4"/>
+                                    <TextBlock Text="请前往“设置” -> “系统” -> “远程桌面”启用后，再安装补丁。" Foreground="{DynamicResource AlertWarningTextBrush}" FontSize="11" TextWrapping="Wrap" LineHeight="16"/>
                                 </StackPanel>
                             </Border>
                             <!-- TermWrap 状态 -->
@@ -494,8 +507,8 @@
                                     <ColumnDefinition Width="*"/>
                                     <ColumnDefinition Width="Auto"/>
                                 </Grid.ColumnDefinitions>
-                                <TextBlock Text="并发组件 (TermWrap)" FontSize="12" Foreground="#71717A" VerticalAlignment="Center"/>
-                                <TextBlock x:Name="TermWrapStatusLabel" Grid.Column="1" Text="未安装" FontSize="12" FontWeight="Bold" Foreground="#EF4444" VerticalAlignment="Center"/>
+                                <TextBlock Text="并发组件 (TermWrap)" FontSize="12" Foreground="{DynamicResource TextSecondaryBrush}" VerticalAlignment="Center"/>
+                                <TextBlock x:Name="TermWrapStatusLabel" Grid.Column="1" Text="未安装" FontSize="12" FontWeight="Bold" Foreground="{DynamicResource BadgeDangerTextBrush}" VerticalAlignment="Center"/>
                             </Grid>
                             <!-- RdpWrap 状态 -->
                             <Grid Margin="0,0,0,10">
@@ -503,8 +516,8 @@
                                     <ColumnDefinition Width="*"/>
                                     <ColumnDefinition Width="Auto"/>
                                 </Grid.ColumnDefinitions>
-                                <TextBlock Text="降级组件 (RdpWrap)" FontSize="12" Foreground="#71717A" VerticalAlignment="Center"/>
-                                <TextBlock x:Name="RdpWrapStatusLabel" Grid.Column="1" Text="未安装" FontSize="12" FontWeight="Bold" Foreground="#EF4444" VerticalAlignment="Center"/>
+                                <TextBlock Text="降级组件 (RdpWrap)" FontSize="12" Foreground="{DynamicResource TextSecondaryBrush}" VerticalAlignment="Center"/>
+                                <TextBlock x:Name="RdpWrapStatusLabel" Grid.Column="1" Text="未安装" FontSize="12" FontWeight="Bold" Foreground="{DynamicResource BadgeDangerTextBrush}" VerticalAlignment="Center"/>
                             </Grid>
                             <!-- EndpWrap 状态 -->
                             <Grid Margin="0,0,0,14">
@@ -512,8 +525,8 @@
                                     <ColumnDefinition Width="*"/>
                                     <ColumnDefinition Width="Auto"/>
                                 </Grid.ColumnDefinitions>
-                                <TextBlock Text="音频保活 (EndpWrap)" FontSize="12" Foreground="#71717A" VerticalAlignment="Center"/>
-                                <TextBlock x:Name="EndpWrapStatusLabel" Grid.Column="1" Text="未安装" FontSize="12" FontWeight="Bold" Foreground="#EF4444" VerticalAlignment="Center"/>
+                                <TextBlock Text="音频保活 (EndpWrap)" FontSize="12" Foreground="{DynamicResource TextSecondaryBrush}" VerticalAlignment="Center"/>
+                                <TextBlock x:Name="EndpWrapStatusLabel" Grid.Column="1" Text="未安装" FontSize="12" FontWeight="Bold" Foreground="{DynamicResource BadgeDangerTextBrush}" VerticalAlignment="Center"/>
                             </Grid>
                             <!-- 补丁操作按钮 -->
                             <Grid>
@@ -540,9 +553,9 @@
                             </Grid.ColumnDefinitions>
                             <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
                                 <TextBlock Text="👤" FontSize="12" Margin="0,0,6,0"/>
-                                <TextBlock Text="账号连接设置" FontSize="12" FontWeight="Bold" Foreground="#3F3F46"/>
+                                <TextBlock Text="账号连接设置" FontSize="12" FontWeight="Bold" Foreground="{DynamicResource TextHeadingBrush}"/>
                             </StackPanel>
-                            <Button x:Name="BtnNewUser" Grid.Column="1" Content="+" Foreground="#3F3F46" Background="Transparent" BorderThickness="0" FontSize="16" FontWeight="Bold" Cursor="Hand" Click="BtnNewUser_Click" Width="30" HorizontalAlignment="Right"/>
+                            <Button x:Name="BtnNewUser" Grid.Column="1" Content="+" Foreground="{DynamicResource TextHeadingBrush}" Background="Transparent" BorderThickness="0" FontSize="16" FontWeight="Bold" Cursor="Hand" Click="BtnNewUser_Click" Width="30" HorizontalAlignment="Right"/>
                         </Grid>
 
                         <!-- ① 账号选择区（始终可见） -->
@@ -579,15 +592,15 @@
                                 <ColumnDefinition Width="Auto"/>
                                 <ColumnDefinition Width="*"/>
                             </Grid.ColumnDefinitions>
-                            <Separator Grid.Column="0" Background="#E4E4E7" VerticalAlignment="Center"/>
+                            <Separator Grid.Column="0" Background="{DynamicResource BadgeNeutralBgBrush}" VerticalAlignment="Center"/>
                             <Button x:Name="BtnToggleAdvancedSettings" Grid.Column="1" Style="{StaticResource SecondaryBorderButton}" 
                                     Height="24" Padding="8,2" BorderThickness="0" Background="Transparent" Click="BtnToggleAdvancedSettings_Click" Cursor="Hand">
                                 <StackPanel Orientation="Horizontal">
-                                    <TextBlock x:Name="TxtAdvancedSettingsArrow" Text="▼" FontSize="10" Foreground="#71717A" Margin="0,0,4,0"/>
-                                    <TextBlock Text="高级功能" FontSize="11" Foreground="#71717A"/>
+                                    <TextBlock x:Name="TxtAdvancedSettingsArrow" Text="▼" FontSize="10" Foreground="{DynamicResource TextSecondaryBrush}" Margin="0,0,4,0"/>
+                                    <TextBlock Text="高级功能" FontSize="11" Foreground="{DynamicResource TextSecondaryBrush}"/>
                                 </StackPanel>
                             </Button>
-                            <Separator Grid.Column="2" Background="#E4E4E7" VerticalAlignment="Center"/>
+                            <Separator Grid.Column="2" Background="{DynamicResource BadgeNeutralBgBrush}" VerticalAlignment="Center"/>
                         </Grid>
 
                         <!-- ③ 高级选项区（默认折叠） -->
@@ -600,7 +613,7 @@
                                     <ColumnDefinition Width="*"/>
                                 </Grid.ColumnDefinitions>
                                 <StackPanel Grid.Column="0">
-                                    <TextBlock Text="分辨率" FontSize="11" Foreground="#71717A" Margin="0,0,0,4"/>
+                                    <TextBlock Text="分辨率" FontSize="11" Foreground="{DynamicResource TextSecondaryBrush}" Margin="0,0,0,4"/>
                                     <ComboBox x:Name="ComboResolution" Style="{StaticResource ModernComboBox}">
                                         <ComboBoxItem Content="自适应窗口" Tag="0x0"/>
                                         <ComboBoxItem Content="1920×1080" Tag="1920x1080"/>
@@ -609,7 +622,7 @@
                                     </ComboBox>
                                 </StackPanel>
                                 <StackPanel Grid.Column="2">
-                                    <TextBlock Text="缩放" FontSize="11" Foreground="#71717A" Margin="0,0,0,4"/>
+                                    <TextBlock Text="缩放" FontSize="11" Foreground="{DynamicResource TextSecondaryBrush}" Margin="0,0,0,4"/>
                                     <ComboBox x:Name="ComboScale" Style="{StaticResource ModernComboBox}">
                                         <ComboBoxItem Content="100%" Tag="100"/>
                                         <ComboBoxItem Content="125%" Tag="125"/>
@@ -621,9 +634,9 @@
                             </Grid>
 
                             <!-- 外设重定向 -->
-                            <Border Background="#FAFAFA" BorderBrush="#F4F4F5" BorderThickness="1" CornerRadius="4" Padding="10" Margin="0,0,0,12">
+                            <Border Background="{DynamicResource PanelBackgroundBrush}" BorderBrush="Transparent" BorderThickness="1" CornerRadius="4" Padding="10" Margin="0,0,0,12">
                                 <StackPanel>
-                                    <TextBlock Text="外设重定向" FontSize="11" FontWeight="Bold" Foreground="#71717A" Margin="0,0,0,8"/>
+                                    <TextBlock Text="外设重定向" FontSize="11" FontWeight="Bold" Foreground="{DynamicResource TextSecondaryBrush}" Margin="0,0,0,8"/>
                                     <UniformGrid Columns="2">
                                         <CheckBox x:Name="ChkClipboard" Content="同步剪贴板" Style="{StaticResource ModernCheckBox}" IsChecked="True"/>
                                         <CheckBox x:Name="ChkAudio" Content="重定向音频" Style="{StaticResource ModernCheckBox}" IsChecked="True"/>
@@ -636,9 +649,9 @@
                             </Border>
 
                             <!-- 远程环境保活锁定 -->
-                            <Border Background="#FAFAFA" BorderBrush="#F4F4F5" BorderThickness="1" CornerRadius="4" Padding="10" Visibility="Collapsed">
+                            <Border Background="{DynamicResource PanelBackgroundBrush}" BorderBrush="Transparent" BorderThickness="1" CornerRadius="4" Padding="10" Visibility="Collapsed">
                                 <StackPanel>
-                                    <TextBlock Text="远程环境保活锁定" FontSize="11" FontWeight="Bold" Foreground="#71717A" Margin="0,0,0,8"/>
+                                    <TextBlock Text="远程环境保活锁定" FontSize="11" FontWeight="Bold" Foreground="{DynamicResource TextSecondaryBrush}" Margin="0,0,0,8"/>
                                     <CheckBox x:Name="ChkKeepResolution" Content="锁定强制恢复显卡分辨率" Style="{StaticResource ModernCheckBox}" IsChecked="True"/>
                                     <CheckBox x:Name="ChkPreventSleep" Content="阻止主机睡眠和锁屏" Style="{StaticResource ModernCheckBox}" IsChecked="True"/>
                                 </StackPanel>
@@ -662,17 +675,17 @@
                                 </Grid.ColumnDefinitions>
                                 <StackPanel Orientation="Horizontal" Grid.Column="0">
                                     <TextBlock Text="🔄" FontSize="12" Margin="0,0,6,0"/>
-                                    <TextBlock Text="活跃会话管理" FontSize="12" FontWeight="Bold" Foreground="#3F3F46"/>
+                                    <TextBlock Text="活跃会话管理" FontSize="12" FontWeight="Bold" Foreground="{DynamicResource TextHeadingBrush}"/>
                                 </StackPanel>
                                 <Button x:Name="BtnCleanZombieSessions" Grid.Column="1" Content="🧹" ToolTip="清理所有断开会话" Width="26" Height="22" Style="{StaticResource SecondaryBorderButton}" Margin="0,0,6,0" Padding="0" Click="BtnCleanZombieSessions_Click"/>
-                                <Border Grid.Column="2" Background="#E4E4E7" CornerRadius="8" Padding="6,1,6,1" VerticalAlignment="Center">
-                                    <TextBlock x:Name="SessionCountBadge" Text="0" FontSize="10" FontWeight="Bold" Foreground="#3F3F46"/>
+                                <Border Grid.Column="2" Background="{DynamicResource BadgeNeutralBgBrush}" CornerRadius="8" Padding="6,1,6,1" VerticalAlignment="Center">
+                                    <TextBlock x:Name="SessionCountBadge" Text="0" FontSize="10" FontWeight="Bold" Foreground="{DynamicResource TextHeadingBrush}"/>
                                 </Border>
                             </Grid>
                         </Expander.Header>
                         <StackPanel Margin="0,12,0,0">
                             <!-- 无活跃会话提示 -->
-                            <TextBlock x:Name="NoSessionsPlaceholder" Text="当前暂无活跃回环会话" FontSize="11" Foreground="#A1A1AA" HorizontalAlignment="Center" Margin="0,10" Visibility="Visible"/>
+                            <TextBlock x:Name="NoSessionsPlaceholder" Text="当前暂无活跃回环会话" FontSize="11" Foreground="{DynamicResource TextMutedBrush}" HorizontalAlignment="Center" Margin="0,10" Visibility="Visible"/>
                             
                             <!-- 会话列表 -->
                             <ListBox x:Name="ListSessions" BorderThickness="0" Background="Transparent" d:ItemsSource="{d:SampleData ItemCount=2}" Margin="0,0,0,4" ScrollViewer.HorizontalScrollBarVisibility="Disabled">
@@ -708,10 +721,10 @@
                                                         <!-- 物理控制台状态文字，默认隐藏 -->
                                                         <TextBlock x:Name="TxtConsoleStatus" Text="🖥️ 物理控制台" FontSize="11" Foreground="#3B82F6" Margin="0,0,8,0" Visibility="Collapsed"/>
                                                         <!-- 虚拟桌面状态文字，默认显示 -->
-                                                        <TextBlock x:Name="TxtVirtualStatus" Text="{Binding StateText}" FontSize="11" Foreground="#10B981" Margin="0,0,8,0" Visibility="Visible"/>
+                                                        <TextBlock x:Name="TxtVirtualStatus" Text="{Binding StateText}" FontSize="11" Foreground="{DynamicResource BadgeSuccessTextBrush}" Margin="0,0,8,0" Visibility="Visible"/>
                                                         
-                                                        <TextBlock Text="运行时间: " FontSize="11" Foreground="#71717A"/>
-                                                        <TextBlock Text="{Binding DurationText}" FontSize="11" Foreground="#71717A"/>
+                                                        <TextBlock Text="运行时间: " FontSize="11" Foreground="{DynamicResource TextSecondaryBrush}"/>
+                                                        <TextBlock Text="{Binding DurationText}" FontSize="11" Foreground="{DynamicResource TextSecondaryBrush}"/>
                                                     </StackPanel>
                                                 </StackPanel>
                                                 
@@ -724,7 +737,7 @@
                                                 
                                                 <!-- Console 会话操作，默认隐藏 -->
                                                 <StackPanel x:Name="PanelConsoleActions" Grid.Column="1" Orientation="Horizontal" VerticalAlignment="Center" Visibility="Collapsed">
-                                                    <Button Content="+ 虚拟屏" Style="{StaticResource SecondaryBorderButton}" Width="70" Click="BtnAddVirtualScreen_Click" Tag="{Binding Username}"/>
+                                                    <TextBlock Text="系统主桌面" Foreground="{DynamicResource TextMutedBrush}" FontSize="12" Margin="0,0,4,0"/>
                                                 </StackPanel>
                                             </Grid>
                                         </Border>
@@ -775,13 +788,13 @@
                                 </Grid.ColumnDefinitions>
                                 <StackPanel Orientation="Horizontal">
                                     <TextBlock Text="📝" FontSize="12" Margin="0,0,6,0"/>
-                                    <TextBlock Text="物理运行日志" FontSize="12" FontWeight="Bold" Foreground="#3F3F46"/>
+                                    <TextBlock Text="物理运行日志" FontSize="12" FontWeight="Bold" Foreground="{DynamicResource TextHeadingBrush}"/>
                                 </StackPanel>
-                                <Button Grid.Column="1" Content="📤" ToolTip="导出日志" Foreground="#3F3F46" Background="Transparent" BorderThickness="0" FontSize="12" FontWeight="Bold" Cursor="Hand" Click="BtnExportLog_Click"/>
+                                <Button Grid.Column="1" Content="📤" ToolTip="导出日志" Foreground="{DynamicResource TextHeadingBrush}" Background="Transparent" BorderThickness="0" FontSize="12" FontWeight="Bold" Cursor="Hand" Click="BtnExportLog_Click"/>
                             </Grid>
                         </Expander.Header>
                         <TextBox x:Name="TxtLogOutput" Height="140" Style="{StaticResource ModernTextBox}" 
-                                 Background="#18181B" Foreground="#A1A1AA" Margin="0,12,0,0"
+                                 Background="#18181B" Foreground="{DynamicResource TextMutedBrush}" Margin="0,12,0,0"
                                  VerticalScrollBarVisibility="Auto" AcceptsReturn="True" IsReadOnly="True" 
                                  TextWrapping="Wrap" FontFamily="Consolas, Courier New" FontSize="11"/>
                     </Expander>
@@ -799,16 +812,16 @@
             <Border Width="340" HorizontalAlignment="Center" VerticalAlignment="Center" 
                     Background="#FFFFFF" BorderBrush="#E4E4E7" BorderThickness="1" CornerRadius="8" Padding="20">
                 <StackPanel>
-                    <TextBlock Text="新建本地隔离账户" FontSize="14" FontWeight="Bold" Foreground="#09090B" Margin="0,0,0,16"/>
+                    <TextBlock Text="新建本地隔离账户" FontSize="14" FontWeight="Bold" Foreground="{DynamicResource TextPrimaryBrush}" Margin="0,0,0,16"/>
                     
                     <StackPanel Margin="0,0,0,12">
-                        <TextBlock Text="账号名称" FontSize="11" Foreground="#71717A" Margin="0,0,0,4"/>
+                        <TextBlock Text="账号名称" FontSize="11" Foreground="{DynamicResource TextSecondaryBrush}" Margin="0,0,0,4"/>
                         <TextBox x:Name="NewUserUsernameTxt" Height="30" Style="{StaticResource ModernTextBox}"/>
                     </StackPanel>
                     
                     <StackPanel Margin="0,0,0,16">
                         <Grid>
-                            <TextBlock Text="连接密码" FontSize="11" Foreground="#71717A" Margin="0,0,0,4"/>
+                            <TextBlock Text="连接密码" FontSize="11" Foreground="{DynamicResource TextSecondaryBrush}" Margin="0,0,0,4"/>
                             <Button x:Name="BtnGeneratePassword" Content="随机强密码" Foreground="#5985E1" Background="Transparent" BorderThickness="0" FontSize="10" FontWeight="Bold" HorizontalAlignment="Right" Click="BtnGeneratePassword_Click"/>
                         </Grid>
                         <Grid>
@@ -825,8 +838,8 @@
                     
                     <!-- 正在创建时的提示面板 -->
                     <StackPanel x:Name="NewUserLoadingPanel" Visibility="Collapsed" Margin="0,0,0,16">
-                        <ProgressBar IsIndeterminate="True" Height="4" Background="#E4E4E7" Foreground="#09090B" BorderThickness="0"/>
-                        <TextBlock Text="正在配置组策略和分配隔离权限，请稍候..." FontSize="11" Foreground="#71717A" Margin="0,6,0,0" HorizontalAlignment="Center"/>
+                        <ProgressBar IsIndeterminate="True" Height="4" Background="{DynamicResource BadgeNeutralBgBrush}" Foreground="{DynamicResource TextPrimaryBrush}" BorderThickness="0"/>
+                        <TextBlock Text="正在配置组策略和分配隔离权限，请稍候..." FontSize="11" Foreground="{DynamicResource TextSecondaryBrush}" Margin="0,6,0,0" HorizontalAlignment="Center"/>
                     </StackPanel>
                     
                     <Grid>
