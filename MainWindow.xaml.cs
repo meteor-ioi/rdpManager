@@ -1549,17 +1549,6 @@ namespace rdpManager
             SetThreadExecutionState(ES_CONTINUOUS);
             base.OnClosed(e);
         }
-    }
-
-    // 会话数据绑定实体
-    public class SessionItem
-    {
-        public int SessionId { get; set; }
-        public string Username { get; set; } = string.Empty;
-        public string StateText { get; set; } = string.Empty;
-        public string DurationText { get; set; } = string.Empty;
-        public bool IsConsole { get; set; }
-        public bool IsCurrentUser { get; set; }
 
         private void ComboTheme_SelectionChanged(object sender, System.Windows.Controls.SelectionChangedEventArgs e)
         {
@@ -1571,5 +1560,16 @@ namespace rdpManager
                 }
             }
         }
+    }
+
+    // 会话数据绑定实体
+    public class SessionItem
+    {
+        public int SessionId { get; set; }
+        public string Username { get; set; } = string.Empty;
+        public string StateText { get; set; } = string.Empty;
+        public string DurationText { get; set; } = string.Empty;
+        public bool IsConsole { get; set; }
+        public bool IsCurrentUser { get; set; }
     }
 }
