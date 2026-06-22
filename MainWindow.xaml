@@ -803,9 +803,9 @@
                         </Grid>
                         <Grid>
                             <Grid.ColumnDefinitions>
-                                <Grid.ColumnDefinition Width="*"/>
-                                <Grid.ColumnDefinition Width="8"/>
-                                <Grid.ColumnDefinition Width="Auto"/>
+                                <ColumnDefinition Width="*"/>
+                                <ColumnDefinition Width="8"/>
+                                <ColumnDefinition Width="Auto"/>
                             </Grid.ColumnDefinitions>
                             <PasswordBox x:Name="NewUserPasswordBox" Style="{StaticResource ModernPasswordBox}" Height="30" VerticalContentAlignment="Center" Margin="0" Grid.Column="0" PasswordChanged="NewUserPasswordBox_PasswordChanged"/>
                             <TextBox x:Name="NewUserPasswordTxt" Style="{StaticResource ModernTextBox}" Height="30" VerticalContentAlignment="Center" Margin="0" Grid.Column="0" Visibility="Collapsed" TextChanged="NewUserPasswordTxt_TextChanged"/>
