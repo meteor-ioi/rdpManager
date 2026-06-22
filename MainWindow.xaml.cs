@@ -331,16 +331,26 @@ namespace rdpManager
                 TermWrapStatusLabel.Foreground = (Brush)new BrushConverter().ConvertFromString("#EF4444")!;
             }
 
-            bool isEndpWrapActive = TermWrapDeployer.IsEndpWrapActive();
-            if (isEndpWrapActive)
+            bool isEndpWrapActive;
+            if (!Environment.Is64BitOperatingSystem)
             {
-                EndpWrapStatusLabel.Text = "已启用";
-                EndpWrapStatusLabel.Foreground = (Brush)new BrushConverter().ConvertFromString("#10B981")!;
+                isEndpWrapActive = true; // x86 系统无 EndpWrap，视为不影响
+                EndpWrapStatusLabel.Text = "不适用";
+                EndpWrapStatusLabel.Foreground = (Brush)new BrushConverter().ConvertFromString("#A1A1AA")!;
             }
             else
             {
-                EndpWrapStatusLabel.Text = "未安装";
-                EndpWrapStatusLabel.Foreground = (Brush)new BrushConverter().ConvertFromString("#EF4444")!;
+                isEndpWrapActive = TermWrapDeployer.IsEndpWrapActive();
+                if (isEndpWrapActive)
+                {
+                    EndpWrapStatusLabel.Text = "已启用";
+                    EndpWrapStatusLabel.Foreground = (Brush)new BrushConverter().ConvertFromString("#10B981")!;
+                }
+                else
+                {
+                    EndpWrapStatusLabel.Text = "未安装";
+                    EndpWrapStatusLabel.Foreground = (Brush)new BrushConverter().ConvertFromString("#EF4444")!;
+                }
             }
 
             bool isInstalled = isTermWrapActive && isEndpWrapActive;

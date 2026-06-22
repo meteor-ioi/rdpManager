@@ -114,30 +114,38 @@ namespace rdpManager.Helpers
                 KillAllRdpSessions();
                 ControlService("TermService", stop: true);
 
-                // 3. 释放内嵌的 DLL 资源 (TermWrap.dll, UmWrap.dll, Zydis.dll)
-                ExtractResource("TermWrap.dll", Path.Combine(RDP_WRAPPER_DIR, "TermWrap.dll"));
-                ExtractResource("UmWrap.dll", Path.Combine(RDP_WRAPPER_DIR, "UmWrap.dll"));
-                ExtractResource("Zydis.dll", Path.Combine(RDP_WRAPPER_DIR, "Zydis.dll"));
+                // 3. 释放内嵌的 DLL 资源 (TermWrap.dll, UmWrap.dll, Zydis.dll)，根据架构动态选择
+                string arch = Environment.Is64BitOperatingSystem ? "x64" : "x86";
+                ExtractResource(arch, "TermWrap.dll", Path.Combine(RDP_WRAPPER_DIR, "TermWrap.dll"));
+                ExtractResource(arch, "Zydis.dll", Path.Combine(RDP_WRAPPER_DIR, "Zydis.dll"));
 
-                // 释放内嵌的 EndpWrap.dll 到 System32 目录
-                string system32Path = Environment.GetFolderPath(Environment.SpecialFolder.System);
-                string endpSystem32Path = Path.Combine(system32Path, "EndpWrap.dll");
-                try
+                if (Environment.Is64BitOperatingSystem)
                 {
-                    ExtractResource("EndpWrap.dll", endpSystem32Path);
-                    Logger.LogInfo("EndpWrap.dll 成功释放至 System32 目录。");
+                    ExtractResource(arch, "UmWrap.dll", Path.Combine(RDP_WRAPPER_DIR, "UmWrap.dll"));
                 }
-                catch (Exception ex)
+
+                // 释放内嵌的 EndpWrap.dll 到 System32 目录（仅 x64 部署，x86 不包含 EndpWrap.dll 且不适用）
+                string system32Path = Environment.GetFolderPath(Environment.SpecialFolder.System);
+                if (Environment.Is64BitOperatingSystem)
                 {
-                    Logger.LogWarning($"释放 EndpWrap.dll 到 System32 失败: {ex.Message}。");
+                    string endpSystem32Path = Path.Combine(system32Path, "EndpWrap.dll");
+                    try
+                    {
+                        ExtractResource("EndpWrap.dll", endpSystem32Path);
+                        Logger.LogInfo("EndpWrap.dll 成功释放至 System32 目录。");
+                    }
+                    catch (Exception ex)
+                    {
+                        Logger.LogWarning($"释放 EndpWrap.dll 到 System32 失败: {ex.Message}。");
+                    }
                 }
 
                 // 4. 额外部署 Zydis.dll 到 System32 目录，这是确保 svchost.exe 能够成功加载 TermWrap.dll 的关键
                 string zydisSystem32Path = Path.Combine(system32Path, "Zydis.dll");
                 try
                 {
-                    ExtractResource("Zydis.dll", zydisSystem32Path);
-                    Logger.LogInfo("Zydis.dll 成功释放至 System32 目录。");
+                    ExtractResource(arch, "Zydis.dll", zydisSystem32Path);
+                    Logger.LogInfo($"Zydis.dll (架构: {arch}) 成功释放至 System32 目录。");
                 }
                 catch (Exception ex)
                 {
@@ -525,7 +533,37 @@ namespace rdpManager.Helpers
         }
 
         /// <summary>
-        /// 自动将程序集中嵌入的资源文件输出到本地路径
+        /// 自动将程序集中嵌入的资源文件输出到本地路径（包含架构子目录支持）
+        /// </summary>
+        private static void ExtractResource(string archFolder, string resourceName, string outputPath)
+        {
+            Assembly assembly = Assembly.GetExecutingAssembly();
+            // 内嵌资源的命名空间路径通常为: 命名空间.Resources.架构子目录.文件名
+            string resourcePath = $"{assembly.GetName().Name}.Resources.{archFolder}.{resourceName}";
+
+            using (Stream? stream = assembly.GetManifestResourceStream(resourcePath))
+            {
+                if (stream == null)
+                {
+                    throw new FileNotFoundException($"无法在资源中找到: {archFolder}/{resourceName}");
+                }
+
+                using (FileStream fileStream = new FileStream(outputPath, FileMode.Create, FileAccess.Write))
+                {
+                    stream.CopyTo(fileStream);
+                }
+            }
+
+            // 释放后检查文件大小，防止 0 字节 DLL 静默部署
+            var fileInfo = new FileInfo(outputPath);
+            if (fileInfo.Length == 0)
+            {
+                throw new InvalidOperationException($"释放的资源 {resourceName} (架构: {archFolder}) 文件大小为 0 字节，可能已损坏。");
+            }
+        }
+
+        /// <summary>
+        /// 自动将程序集中嵌入的资源文件输出到本地路径（架构无关）
         /// </summary>
         private static void ExtractResource(string resourceName, string outputPath)
         {
@@ -544,6 +582,13 @@ namespace rdpManager.Helpers
                 {
                     stream.CopyTo(fileStream);
                 }
+            }
+
+            // 释放后检查文件大小，防止 0 字节 DLL 静默部署
+            var fileInfo = new FileInfo(outputPath);
+            if (fileInfo.Length == 0)
+            {
+                throw new InvalidOperationException($"释放的资源 {resourceName} 文件大小为 0 字节，可能已损坏。");
             }
         }
 

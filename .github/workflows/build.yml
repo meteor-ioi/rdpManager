@@ -41,18 +41,31 @@ jobs:
         New-Item -ItemType Directory -Force -Path TermWrap\zydis\msvc\bin\ReleaseX64
         Copy-Item TermWrap\zydis\build\Release\Zydis.lib TermWrap\zydis\msvc\bin\ReleaseX64\ -Force
 
+    - name: Build Zydis Dependency (Release x86)
+      run: |
+        cmake -B TermWrap/zydis/build_x86 -S TermWrap/zydis -A Win32 -DCMAKE_BUILD_TYPE=Release -DZYDIS_BUILD_SHARED_LIB=ON
+        cmake --build TermWrap/zydis/build_x86 --config Release
+        New-Item -ItemType Directory -Force -Path TermWrap\zydis\msvc\bin\ReleaseX86
+        Copy-Item TermWrap\zydis\build_x86\Release\Zydis.lib TermWrap\zydis\msvc\bin\ReleaseX86\ -Force
+
     - name: Build TermWrap DLL (Release x64)
       run: msbuild TermWrap/TermWrap/TermWrap.vcxproj /p:Configuration=Release /p:Platform=x64 /p:SolutionDir="${{ github.workspace }}\TermWrap\\"
+
+    - name: Build TermWrap DLL (Release x86)
+      run: msbuild TermWrap/TermWrap/TermWrap.vcxproj /p:Configuration=Release /p:Platform=Win32 /p:SolutionDir="${{ github.workspace }}\TermWrap\\"
 
     - name: Build UmWrap DLL (Release x64)
       run: msbuild TermWrap/UmWrap/UmWrap.vcxproj /p:Configuration=Release /p:Platform=x64 /p:SolutionDir="${{ github.workspace }}\TermWrap\\"
 
     - name: Copy Built DLLs to Resources
       run: |
-        New-Item -ItemType Directory -Force -Path Resources
-        Copy-Item TermWrap\x64\Release\TermWrap.dll Resources\ -Force
-        Copy-Item TermWrap\x64\Release\UmWrap.dll Resources\ -Force
-        Copy-Item TermWrap\zydis\build\Release\Zydis.dll Resources\ -Force
+        New-Item -ItemType Directory -Force -Path Resources/x64
+        New-Item -ItemType Directory -Force -Path Resources/x86
+        Copy-Item TermWrap\x64\Release\TermWrap.dll Resources\x64\ -Force
+        Copy-Item TermWrap\x64\Release\UmWrap.dll Resources\x64\ -Force
+        Copy-Item TermWrap\zydis\build\Release\Zydis.dll Resources\x64\ -Force
+        Copy-Item TermWrap\Release\TermWrap.dll Resources\x86\ -Force
+        Copy-Item TermWrap\zydis\build_x86\Release\Zydis.dll Resources\x86\ -Force
 
     - name: Generate MSTSCLib ActiveX Interop Assemblies
       run: |
