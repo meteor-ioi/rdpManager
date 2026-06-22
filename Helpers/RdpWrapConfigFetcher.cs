@@ -7,17 +7,17 @@ namespace rdpManager.Helpers
 {
     public static class RdpWrapConfigFetcher
     {
-        // 预设的代理池源，按优先级排序。目前主要使用 SobieskiCodes 源。
+        // 预设的代理池源，按优先级排序。目前主要使用 sebaxakerhtc 源。
         private static readonly string[] ConfigSources = new string[]
         {
             // ghproxy 国内代理
-            "https://ghproxy.net/https://raw.githubusercontent.com/SobieskiCodes/RDPWrap/master/res/rdpwrap.ini",
+            "https://ghproxy.net/https://raw.githubusercontent.com/sebaxakerhtc/rdpwrap.ini/master/rdpwrap.ini",
             // fastly jsdelivr CDN 加速
-            "https://fastly.jsdelivr.net/gh/SobieskiCodes/RDPWrap@master/res/rdpwrap.ini",
+            "https://fastly.jsdelivr.net/gh/sebaxakerhtc/rdpwrap.ini@master/rdpwrap.ini",
             // kkgithub 镜像
-            "https://raw.kkgithub.com/SobieskiCodes/RDPWrap/master/res/rdpwrap.ini",
+            "https://raw.kkgithub.com/sebaxakerhtc/rdpwrap.ini/master/rdpwrap.ini",
             // 原生 GitHub 直连 (备选)
-            "https://raw.githubusercontent.com/SobieskiCodes/RDPWrap/master/res/rdpwrap.ini"
+            "https://raw.githubusercontent.com/sebaxakerhtc/rdpwrap.ini/master/rdpwrap.ini"
         };
 
         /// <summary>
