@@ -171,6 +171,8 @@
             <Setter Property="Padding" Value="8,6,8,6"/>
             <Setter Property="VerticalAlignment" Value="Center"/>
             <Setter Property="Background" Value="{DynamicResource InputBackgroundBrush}"/>
+            <Setter Property="Foreground" Value="{DynamicResource TextPrimaryBrush}"/>
+            <Setter Property="CaretBrush" Value="{DynamicResource TextPrimaryBrush}"/>
             <Setter Property="FontSize" Value="12"/>
             <Setter Property="Template">
                 <Setter.Value>
@@ -195,6 +197,8 @@
             <Setter Property="Padding" Value="8,6,8,6"/>
             <Setter Property="VerticalAlignment" Value="Center"/>
             <Setter Property="Background" Value="{DynamicResource InputBackgroundBrush}"/>
+            <Setter Property="Foreground" Value="{DynamicResource TextPrimaryBrush}"/>
+            <Setter Property="CaretBrush" Value="{DynamicResource TextPrimaryBrush}"/>
             <Setter Property="FontSize" Value="12"/>
             <Setter Property="Template">
                 <Setter.Value>
@@ -480,10 +484,10 @@
                     <StackPanel Grid.Column="1" Orientation="Horizontal" VerticalAlignment="Center">
                         <!-- 主题切换 -->
                         <TextBlock Text="🎨" FontSize="14" Margin="0,0,4,0" VerticalAlignment="Center"/>
-                        <ComboBox x:Name="ComboTheme" Style="{StaticResource ModernComboBox}" Width="85" Height="24" FontSize="11" Margin="0,0,8,0" Padding="6,0" SelectionChanged="ComboTheme_SelectionChanged">
+                        <ComboBox x:Name="ComboTheme" Style="{StaticResource ModernComboBox}" Width="60" Height="24" FontSize="11" Margin="0,0,8,0" Padding="6,0" SelectionChanged="ComboTheme_SelectionChanged">
                             <ComboBoxItem Content="系统" Tag="System" IsSelected="True"/>
-                            <ComboBoxItem Content="白 天" Tag="Light"/>
-                            <ComboBoxItem Content="黑 夜" Tag="Dark"/>
+                            <ComboBoxItem Content="白天" Tag="Light"/>
+                            <ComboBoxItem Content="黑夜" Tag="Dark"/>
                         </ComboBox>
                         
                         <!-- 提权状态 -->
@@ -500,7 +504,7 @@
         </Border>
 
         <!-- ======================= 中部滚动卡片区 ======================= -->
-        <ScrollViewer Grid.Row="1" VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled" Padding="14,14,14,0">
+        <ScrollViewer Grid.Row="1" VerticalScrollBarVisibility="Hidden" HorizontalScrollBarVisibility="Disabled" Padding="14,14,14,0">
             <StackPanel>
                 
                 <!-- 权限警告横幅 (如果没管理员权限就显示) -->
@@ -759,9 +763,6 @@
                                                         <TextBlock x:Name="TxtConsoleStatus" Text="🖥️ 物理控制台" FontSize="11" Foreground="#3B82F6" Margin="0,0,8,0" Visibility="Collapsed"/>
                                                         <!-- 虚拟桌面状态文字，默认显示 -->
                                                         <TextBlock x:Name="TxtVirtualStatus" Text="{Binding StateText}" FontSize="11" Foreground="{DynamicResource BadgeSuccessTextBrush}" Margin="0,0,8,0" Visibility="Visible"/>
-                                                        
-                                                        <TextBlock Text="运行时间: " FontSize="11" Foreground="{DynamicResource TextSecondaryBrush}"/>
-                                                        <TextBlock Text="{Binding DurationText}" FontSize="11" Foreground="{DynamicResource TextSecondaryBrush}"/>
                                                     </StackPanel>
                                                 </StackPanel>
                                                 
