@@ -42,6 +42,10 @@ namespace rdpManager
         private static extern bool ShowWindow(IntPtr hWnd, int nCmdShow);
 
         [DllImport("user32.dll")]
+        [return: MarshalAs(UnmanagedType.Bool)]
+        private static extern bool IsWindowVisible(IntPtr hWnd);
+
+        [DllImport("user32.dll")]
         private static extern uint GetWindowThreadProcessId(IntPtr hWnd, out uint lpdwProcessId);
 
         [DllImport("user32.dll")]
@@ -57,6 +61,7 @@ namespace rdpManager
             public string Username { get; set; } = string.Empty;
             public Process? Process { get; set; }
             public bool IsHidden { get; set; }
+            public List<IntPtr> TargetWindows { get; set; } = new List<IntPtr>();
         }
 
         private readonly List<RdpSessionProcess> _rdpProcesses = new List<RdpSessionProcess>();
@@ -182,17 +187,30 @@ namespace rdpManager
 
                 if (rdpProc != null && rdpProc.Process != null && !rdpProc.Process.HasExited)
                 {
-                    var hwnds = GetWindowHandlesByPid(rdpProc.Process.Id);
-                    if (hwnds.Count > 0)
+                    // 如果记录了目标窗口，只显示这些窗口
+                    if (rdpProc.TargetWindows != null && rdpProc.TargetWindows.Count > 0)
                     {
-                        foreach (var hwnd in hwnds)
+                        foreach (var hwnd in rdpProc.TargetWindows)
                         {
                             ShowWindow(hwnd, SW_SHOW);
                         }
-                        rdpProc.IsHidden = false;
-                        Logger.LogInfo($"已从后台恢复并显示用户 '{username}' 的 RDP 窗口。");
-                        return true;
                     }
+                    else
+                    {
+                        // 退化处理：如果没有记录，只显示当前不可见的窗口或者主窗口
+                        // 但由于此时可能已经是隐藏状态，无法判断之前是否可见，
+                        // mstsc 的主窗口通常带有特定的样式或行为，这里尽量保守
+                        var hwnds = GetWindowHandlesByPid(rdpProc.Process.Id);
+                        foreach (var hwnd in hwnds)
+                        {
+                            // 暴力恢复可能会导致白块，但作为外部进程的 fallback 只能尽量
+                            ShowWindow(hwnd, SW_SHOW);
+                        }
+                    }
+                    rdpProc.IsHidden = false;
+                    rdpProc.TargetWindows?.Clear();
+                    Logger.LogInfo($"已从后台恢复并显示用户 '{username}' 的 RDP 窗口。");
+                    return true;
                 }
             }
             return false;
@@ -1030,11 +1048,16 @@ namespace rdpManager
                         if (mstscProc != null && !mstscProc.HasExited)
                         {
                             var hwnds = GetWindowHandlesByPid(mstscProc.Id);
+                            var visibleHwnds = new List<IntPtr>();
                             if (hwnds.Count > 0)
                             {
                                 foreach (var hwnd in hwnds)
                                 {
-                                    ShowWindow(hwnd, SW_HIDE);
+                                    if (IsWindowVisible(hwnd))
+                                    {
+                                        visibleHwnds.Add(hwnd);
+                                        ShowWindow(hwnd, SW_HIDE);
+                                    }
                                 }
                                 lock (_rdpProcesses)
                                 {
@@ -1042,6 +1065,7 @@ namespace rdpManager
                                     if (match != null)
                                     {
                                         match.IsHidden = true;
+                                        match.TargetWindows = visibleHwnds;
                                     }
                                     else
                                     {
@@ -1049,7 +1073,8 @@ namespace rdpManager
                                         {
                                             Username = username,
                                             Process = mstscProc,
-                                            IsHidden = true
+                                            IsHidden = true,
+                                            TargetWindows = visibleHwnds
                                         });
                                     }
                                 }
