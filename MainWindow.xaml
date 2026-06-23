@@ -764,6 +764,8 @@
                                                         <TextBlock x:Name="TxtConsoleStatus" Text="🖥️ 物理控制台" FontSize="11" Foreground="#3B82F6" Margin="0,0,8,0" Visibility="Collapsed"/>
                                                         <!-- 虚拟桌面状态文字，默认显示 -->
                                                         <TextBlock x:Name="TxtVirtualStatus" Text="{Binding StateText}" FontSize="11" Foreground="{DynamicResource BadgeSuccessTextBrush}" Margin="0,0,8,0" Visibility="Visible"/>
+                                                        <!-- 实时连接时长 -->
+                                                        <TextBlock x:Name="TxtDuration" Text="{Binding DurationText}" FontSize="11" Foreground="{DynamicResource TextSecondaryBrush}" Margin="0,0,8,0" Visibility="Visible"/>
                                                     </StackPanel>
                                                 </StackPanel>
                                                 

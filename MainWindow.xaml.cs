@@ -37,6 +37,35 @@ namespace rdpManager
         private const uint ES_SYSTEM_REQUIRED = 0x00000001;
         private const uint ES_DISPLAY_REQUIRED = 0x00000002;
 
+        [DllImport("wtsapi32.dll", SetLastError = true)]
+        private static extern bool WTSQuerySessionInformation(IntPtr hServer, int sessionId, int wtsInfoClass, out IntPtr ppBuffer, out uint pBytesReturned);
+
+        [DllImport("wtsapi32.dll")]
+        private static extern void WTSFreeMemory(IntPtr pMemory);
+
+        private const int WTSLogonTime = 18;
+
+        private static DateTime? GetSessionLogonTime(int sessionId)
+        {
+            if (WTSQuerySessionInformation(IntPtr.Zero, sessionId, WTSLogonTime, out IntPtr buffer, out uint bytesReturned))
+            {
+                try
+                {
+                    if (buffer != IntPtr.Zero && bytesReturned >= 8)
+                    {
+                        long fileTime = Marshal.ReadInt64(buffer);
+                        if (fileTime > 0)
+                            return DateTime.FromFileTime(fileTime);
+                    }
+                }
+                finally
+                {
+                    WTSFreeMemory(buffer);
+                }
+            }
+            return null;
+        }
+
         // Win32 API 辅助方法，用于保活断开时隐藏 RDP 窗口，恢复连接时显示
         [DllImport("user32.dll")]
         private static extern bool ShowWindow(IntPtr hWnd, int nCmdShow);
@@ -269,6 +298,12 @@ namespace rdpManager
             _refreshTimer.Tick += RefreshTimer_Tick;
             _refreshTimer.Start();
 
+            // 初始化连接时长秒级定时器
+            _durationTimer = new DispatcherTimer();
+            _durationTimer.Interval = TimeSpan.FromSeconds(1);
+            _durationTimer.Tick += DurationTimer_Tick;
+            _durationTimer.Start();
+
             // 应用主机级阻止休眠策略
             ApplySleepPrevention();
 
@@ -290,11 +325,33 @@ namespace rdpManager
             });
         }
 
+        private readonly DispatcherTimer _refreshTimer;
+        private readonly DispatcherTimer _durationTimer;
+
         private void RefreshTimer_Tick(object? sender, EventArgs e)
         {
-            RefreshDiagnosticStatus();
             RefreshSessions();
+            RefreshDiagnosticStatus();
             ApplySleepPrevention();
+        }
+
+        private void DurationTimer_Tick(object? sender, EventArgs e)
+        {
+            if (ListSessions.ItemsSource is IEnumerable<SessionItem> items)
+            {
+                foreach (var item in items)
+                {
+                    if (item.IsActive && item.LogonTime.HasValue)
+                    {
+                        var duration = DateTime.Now - item.LogonTime.Value;
+                        item.DurationText = string.Format("{0:D2}:{1:D2}:{2:D2}", duration.Hours + (duration.Days * 24), duration.Minutes, duration.Seconds);
+                    }
+                    else
+                    {
+                        item.DurationText = string.Empty;
+                    }
+                }
+            }
         }
 
         // ======================= 诊断与补丁管理 =======================
@@ -978,7 +1035,6 @@ namespace rdpManager
                                         }
                                     }
 
-                                    // 如果是当前物理控制台登录账号，或者正好是当前系统的 Windows 用户，标记 IsCurrentUser
                                     bool isCurrentUser = string.Equals(username, Environment.UserName, StringComparison.OrdinalIgnoreCase);
 
                                     sessions.Add(new SessionItem
@@ -986,9 +1042,11 @@ namespace rdpManager
                                         SessionId = sessionId,
                                         Username = username,
                                         StateText = isActive ? "🟢 活跃" : "🟡 断开",
-                                        DurationText = "保活中",
+                                        DurationText = string.Empty,
                                         IsConsole = isConsole,
-                                        IsCurrentUser = isCurrentUser
+                                        IsCurrentUser = isCurrentUser,
+                                        IsActive = isActive,
+                                        LogonTime = isActive ? GetSessionLogonTime(sessionId) : null
                                     });
                                 }
                             }
@@ -1197,6 +1255,20 @@ namespace rdpManager
                 Logger.LogInfo($"正在注销 RDP 会话 {sessionId}...");
                 try
                 {
+                    string username = "";
+                    if (ListSessions.ItemsSource is IEnumerable<SessionItem> items)
+                    {
+                        var item = items.FirstOrDefault(i => i.SessionId == sessionId);
+                        if (item != null)
+                        {
+                            username = item.Username;
+                        }
+                    }
+                    if (!string.IsNullOrEmpty(username))
+                    {
+                        KillExistingMstscProcessForUser(username);
+                    }
+
                     var psi = new ProcessStartInfo("logoff", sessionId.ToString())
                     {
                         UseShellExecute = false,
@@ -1363,7 +1435,13 @@ namespace rdpManager
                 // 分辨率配置
                 if (ComboResolution.SelectedItem is ComboBoxItem resItem && resItem.Tag is string resTag)
                 {
-                    if (resTag != "0x0" && resTag.Contains("x"))
+                    if (resTag == "0x0")
+                    {
+                        rdpContent.AppendLine("screen mode id:i:1"); // 窗口模式
+                        rdpContent.AppendLine("desktopwidth:i:1280");
+                        rdpContent.AppendLine("desktopheight:i:720");
+                    }
+                    else if (resTag.Contains("x"))
                     {
                         var parts = resTag.Split('x');
                         rdpContent.AppendLine("screen mode id:i:1"); // 窗口模式
@@ -1599,13 +1677,26 @@ namespace rdpManager
     }
 
     // 会话数据绑定实体
-    public class SessionItem
+    public class SessionItem : System.ComponentModel.INotifyPropertyChanged
     {
+        public event System.ComponentModel.PropertyChangedEventHandler? PropertyChanged;
+        protected void OnPropertyChanged(string propertyName) => PropertyChanged?.Invoke(this, new System.ComponentModel.PropertyChangedEventArgs(propertyName));
+
         public int SessionId { get; set; }
         public string Username { get; set; } = string.Empty;
         public string StateText { get; set; } = string.Empty;
-        public string DurationText { get; set; } = string.Empty;
+        
+        private string _durationText = string.Empty;
+        public string DurationText 
+        { 
+            get => _durationText; 
+            set { if (_durationText != value) { _durationText = value; OnPropertyChanged(nameof(DurationText)); } }
+        }
+        
         public bool IsConsole { get; set; }
         public bool IsCurrentUser { get; set; }
+        
+        public DateTime? LogonTime { get; set; }
+        public bool IsActive { get; set; }
     }
 }
