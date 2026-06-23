@@ -484,12 +484,9 @@
                     <!-- 状态标签区 -->
                     <StackPanel Grid.Column="1" Orientation="Horizontal" VerticalAlignment="Center">
                         <!-- 主题切换 -->
-                        <TextBlock Text="🎨" FontSize="14" Margin="0,0,4,0" VerticalAlignment="Center"/>
-                        <ComboBox x:Name="ComboTheme" Style="{StaticResource ModernComboBox}" Width="60" Height="24" FontSize="11" Margin="0,0,8,0" Padding="6,0" SelectionChanged="ComboTheme_SelectionChanged">
-                            <ComboBoxItem Content="系统" Tag="System" IsSelected="True"/>
-                            <ComboBoxItem Content="白天" Tag="Light"/>
-                            <ComboBoxItem Content="黑夜" Tag="Dark"/>
-                        </ComboBox>
+                        <Button x:Name="BtnThemeToggle" Style="{StaticResource SecondaryBorderButton}" Width="28" Height="24" Margin="0,0,8,0" Click="BtnThemeToggle_Click" ToolTip="切换主题 (💻系统/☀️白天/🌙黑夜)">
+                            <TextBlock x:Name="TxtThemeIcon" Text="💻" FontSize="12" VerticalAlignment="Center" HorizontalAlignment="Center"/>
+                        </Button>
                         
                         <!-- 提权状态 -->
                         <Border x:Name="AdminTag" Background="{DynamicResource BadgeDangerBgBrush}" CornerRadius="4" Padding="6,2,6,2">
@@ -763,7 +760,7 @@
                                                         <!-- 物理控制台状态文字，默认隐藏 -->
                                                         <TextBlock x:Name="TxtConsoleStatus" Text="🖥️ 物理控制台" FontSize="11" Foreground="#3B82F6" Margin="0,0,8,0" Visibility="Collapsed"/>
                                                         <!-- 虚拟桌面状态文字，默认显示 -->
-                                                        <TextBlock Text="{Binding IconText}" FontFamily="Segoe Fluent Icons, Segoe MDL2 Assets" FontSize="11" Foreground="{DynamicResource BadgeSuccessTextBrush}" Margin="0,0,2,0" VerticalAlignment="Center"/>
+                                                        <TextBlock x:Name="TxtVirtualIcon" Text="{Binding IconText}" FontFamily="Segoe Fluent Icons, Segoe MDL2 Assets" FontSize="11" Foreground="{DynamicResource BadgeSuccessTextBrush}" Margin="0,0,2,0" VerticalAlignment="Center"/>
                                                         <TextBlock x:Name="TxtVirtualStatus" Text="{Binding StateText}" FontSize="11" Foreground="{DynamicResource BadgeSuccessTextBrush}" Margin="0,0,8,0" VerticalAlignment="Center" Visibility="Visible"/>
                                                         <!-- 实时连接时长 -->
                                                         <TextBlock x:Name="TxtDuration" Text="{Binding DurationText}" FontSize="11" Foreground="{DynamicResource TextSecondaryBrush}" Margin="0,0,8,0" Visibility="Visible"/>
@@ -793,18 +790,33 @@
                                                 <Setter TargetName="PanelConsoleActions" Property="Visibility" Value="Visible"/>
                                             </DataTrigger>
                                             
+                                            <!-- 共享环境（蓝色） -->
+                                            <DataTrigger Binding="{Binding StateText}" Value="共享环境">
+                                                <Setter TargetName="TxtVirtualStatus" Property="Foreground" Value="#3B82F6"/>
+                                                <Setter TargetName="TxtVirtualIcon" Property="Foreground" Value="#3B82F6"/>
+                                            </DataTrigger>
+                                            
+                                            <!-- 隔离环境（绿色） -->
+                                            <DataTrigger Binding="{Binding StateText}" Value="隔离环境">
+                                                <Setter TargetName="TxtVirtualStatus" Property="Foreground" Value="{DynamicResource BadgeSuccessTextBrush}"/>
+                                                <Setter TargetName="TxtVirtualIcon" Property="Foreground" Value="{DynamicResource BadgeSuccessTextBrush}"/>
+                                            </DataTrigger>
+                                            
                                             <!-- 如果是断开状态，调整保活断开按钮是否可用 -->
                                             <DataTrigger Binding="{Binding StateText}" Value="断开">
                                                 <Setter TargetName="BtnDisconnect" Property="IsEnabled" Value="False"/>
                                                 <Setter TargetName="TxtVirtualStatus" Property="Foreground" Value="#F59E0B"/>
+                                                <Setter TargetName="TxtVirtualIcon" Property="Foreground" Value="#F59E0B"/>
                                             </DataTrigger>
                                             <DataTrigger Binding="{Binding StateText}" Value="Disconnected">
                                                 <Setter TargetName="BtnDisconnect" Property="IsEnabled" Value="False"/>
                                                 <Setter TargetName="TxtVirtualStatus" Property="Foreground" Value="#F59E0B"/>
+                                                <Setter TargetName="TxtVirtualIcon" Property="Foreground" Value="#F59E0B"/>
                                             </DataTrigger>
                                             <DataTrigger Binding="{Binding StateText}" Value="Disc">
                                                 <Setter TargetName="BtnDisconnect" Property="IsEnabled" Value="False"/>
                                                 <Setter TargetName="TxtVirtualStatus" Property="Foreground" Value="#F59E0B"/>
+                                                <Setter TargetName="TxtVirtualIcon" Property="Foreground" Value="#F59E0B"/>
                                             </DataTrigger>
                                         </DataTemplate.Triggers>
                                     </DataTemplate>

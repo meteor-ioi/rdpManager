@@ -160,7 +160,7 @@ namespace rdpManager
                 var item = items.FirstOrDefault(i => i.Username.Equals(username, StringComparison.OrdinalIgnoreCase));
                 if (item != null)
                 {
-                    return item.StateText.Contains("活跃");
+                    return item.IsActive;
                 }
             }
             return false;
@@ -248,7 +248,7 @@ namespace rdpManager
         public MainWindow()
         {
             InitializeComponent();
-            ComboTheme.SelectedIndex = (int)ThemeManager.CurrentMode;
+            UpdateThemeIcon();
 
             // 订阅系统日志，并在界面展示
             Logger.OnLogWritten += Logger_OnLogWritten;
@@ -1057,7 +1057,7 @@ namespace rdpManager
                                     {
                                         SessionId = sessionId,
                                         Username = username,
-                                        StateText = isActive ? "活跃" : "断开",
+                                        StateText = isActive ? (isCurrentUser ? "共享环境" : "隔离环境") : "断开",
                                         DurationText = string.Empty,
                                         IsConsole = isConsole,
                                         IsCurrentUser = isCurrentUser,
@@ -1405,7 +1405,7 @@ namespace rdpManager
             }
 
             // 智能策略：如果不是强制新开，且有活跃会话，直接恢复 mstsc 窗口
-            if (!forceNew && existingSession != null && existingSession.StateText.Contains("活跃"))
+            if (!forceNew && existingSession != null && existingSession.IsActive)
             {
                 if (TryShowExistingRdpWindow(username))
                 {
@@ -1414,7 +1414,7 @@ namespace rdpManager
             }
             
             // 智能策略：如果该用户存在已断开的旧会话，自动将其 logoff 以免新建连接冲突
-            if (existingSession != null && existingSession.StateText.Contains("断开"))
+            if (existingSession != null && !existingSession.IsActive)
             {
                 Logger.LogInfo($"检测到用户 '{username}' 存在已断开的旧会话 (SessionId={existingSession.SessionId})，正在自动注销以避免冲突...");
                 try
@@ -1702,14 +1702,40 @@ namespace rdpManager
             base.OnClosed(e);
         }
 
-        private void ComboTheme_SelectionChanged(object sender, System.Windows.Controls.SelectionChangedEventArgs e)
+        private void BtnThemeToggle_Click(object sender, RoutedEventArgs e)
         {
-            if (ComboTheme.SelectedItem is System.Windows.Controls.ComboBoxItem item)
+            ThemeMode nextMode;
+            switch (ThemeManager.CurrentMode)
             {
-                if (Enum.TryParse(item.Tag?.ToString(), out ThemeMode mode))
-                {
-                    ThemeManager.SaveThemeMode(mode);
-                }
+                case ThemeMode.System:
+                    nextMode = ThemeMode.Light;
+                    break;
+                case ThemeMode.Light:
+                    nextMode = ThemeMode.Dark;
+                    break;
+                case ThemeMode.Dark:
+                default:
+                    nextMode = ThemeMode.System;
+                    break;
+            }
+            ThemeManager.SaveThemeMode(nextMode);
+            UpdateThemeIcon();
+        }
+
+        private void UpdateThemeIcon()
+        {
+            if (TxtThemeIcon == null) return;
+            switch (ThemeManager.CurrentMode)
+            {
+                case ThemeMode.System:
+                    TxtThemeIcon.Text = "💻";
+                    break;
+                case ThemeMode.Light:
+                    TxtThemeIcon.Text = "☀️";
+                    break;
+                case ThemeMode.Dark:
+                    TxtThemeIcon.Text = "🌙";
+                    break;
             }
         }
     }
