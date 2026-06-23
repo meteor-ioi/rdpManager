@@ -190,30 +190,26 @@ namespace rdpManager
 
                 if (rdpProc != null && rdpProc.Process != null && !rdpProc.Process.HasExited)
                 {
-                    // 如果记录了目标窗口，只显示这些窗口
+                    // 仅在明确记录了被隐藏的目标窗口句柄时，才进行显示恢复
                     if (rdpProc.TargetWindows != null && rdpProc.TargetWindows.Count > 0)
                     {
                         foreach (var hwnd in rdpProc.TargetWindows)
                         {
                             ShowWindow(hwnd, SW_SHOW);
                         }
+                        rdpProc.IsHidden = false;
+                        rdpProc.TargetWindows.Clear();
+                        Logger.LogInfo($"已从后台恢复并显示用户 '{username}' 的 RDP 窗口。");
+                        return true;
                     }
                     else
                     {
-                        // 退化处理：如果没有记录，只显示当前不可见的窗口或者主窗口
-                        // 但由于此时可能已经是隐藏状态，无法判断之前是否可见，
-                        // mstsc 的主窗口通常带有特定的样式或行为，这里尽量保守
-                        var hwnds = GetWindowHandlesByPid(rdpProc.Process.Id);
-                        foreach (var hwnd in hwnds)
-                        {
-                            // 暴力恢复可能会导致白块，但作为外部进程的 fallback 只能尽量
-                            ShowWindow(hwnd, SW_SHOW);
-                        }
+                        // 如果没有记录句柄，说明窗口从未被成功隐藏过（例如走的是 tscon 物理重定向降级路径）。
+                        // 此时不应进行暴力句柄显示（防止拉起 mstsc 的各种空白/工具栏辅助窗口导致白块），
+                        // 而是返回 false，让上层 LaunchRdpConnection 重新建立干净的连接。
+                        Logger.LogInfo($"未找到用户 '{username}' 窗口被隐藏的记录，将重新建立连接。");
+                        return false;
                     }
-                    rdpProc.IsHidden = false;
-                    rdpProc.TargetWindows?.Clear();
-                    Logger.LogInfo($"已从后台恢复并显示用户 '{username}' 的 RDP 窗口。");
-                    return true;
                 }
             }
             return false;
@@ -1172,6 +1168,11 @@ namespace rdpManager
                                         ShowWindow(hwnd, SW_HIDE);
                                     }
                                 }
+                            }
+
+                            // 只有在成功捕获并隐藏了至少一个可见窗口时，才算隐藏成功；否则视为隐藏失败（走 tscon 重定向降级）
+                            if (visibleHwnds.Count > 0)
+                            {
                                 lock (_rdpProcesses)
                                 {
                                     var match = _rdpProcesses.FirstOrDefault(p => p.Username.Equals(username, StringComparison.OrdinalIgnoreCase));
@@ -1422,6 +1423,16 @@ namespace rdpManager
                 {
                     return;
                 }
+
+                // 如果是当前登录用户自身，且无法恢复窗口（说明已经在当前会话中），禁止重复拉起以防递归回环
+                if (string.Equals(username, Environment.UserName, StringComparison.OrdinalIgnoreCase))
+                {
+                    MessageBox.Show("您当前已处于该共享环境中（即当前正在使用的桌面），无需重复打开远程桌面窗口。", "提示", MessageBoxButton.OK, MessageBoxImage.Information);
+                    return;
+                }
+
+                // 如果无法恢复已有的客户端窗口，清理残留的本地 mstsc 进程以防止连接冲突
+                KillExistingMstscProcessForUser(username);
             }
             
             // 智能策略：如果该用户存在已断开的旧会话，自动将其 logoff 以免新建连接冲突
